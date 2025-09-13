@@ -10,7 +10,7 @@ def generate_video(audio_path, question_text, output_name="output.mp4"):
     # FFmpeg 命令：背景 + 音訊 + 問題文字
     cmd = [
         "ffmpeg",
-        "-y",
+        "-loglevel", "error",
         "-loop", "1",
         "-i", DEFAULT_BG_IMAGE,
         "-i", audio_path,
