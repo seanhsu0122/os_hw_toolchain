@@ -6,7 +6,8 @@ import os
 def generate_tts_audio(
     script: str,
     output_path: str,
-    model: str = "gemini-2.5-flash-preview-tts"
+    model: str = "gemini-2.5-flash-preview-tts",
+    voice_name: str = "Kore"
 ):
     """
     使用 Gemini TTS API 將文字腳本轉換為音訊檔案。
@@ -15,6 +16,7 @@ def generate_tts_audio(
         script (str): 要轉換為語音的文字腳本。
         output_path (str): 儲存生成之 WAV 音訊檔案的路徑。
         model (str, optional): 要使用的 TTS 模型。預設為 "gemini-2.5-flash-preview-tts"。
+        voice_name (str, optional): 要使用的語音名稱。預設為 "Kore"。
     """
     try:
         # 初始化 Gemini 用戶端
@@ -29,7 +31,7 @@ def generate_tts_audio(
                 speech_config=types.SpeechConfig(
                     voice_config=types.VoiceConfig(
                         prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name='Kore',  # 您可以根據需求更換其他人聲，例如 'Puck'
+                            voice_name=voice_name,  # 您可以根據需求更換其他人聲，例如 'Puck'
                         )
                     )
                 ),

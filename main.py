@@ -6,6 +6,8 @@ from modules.tts_module import generate_tts_audio
 from modules.video_generator import generate_video
 from config import TEMP_DIR, GEMINI_API_KEY
 
+VOICE_NAME = "Puck" # 可選 'Kore', 'Puck' 等
+
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY not found. Please set it in your .env file.")
 genai.configure(api_key=GEMINI_API_KEY)
@@ -28,7 +30,7 @@ def main():
         print("步驟 3: 正在生成語音 (此步驟可能需要較長時間)...")
         # Gemini TTS 產生的音訊是 mp3 格式
         audio_path = os.path.join(TEMP_DIR, "generated_audio.mp3")
-        generate_tts_audio(script, audio_path)
+        generate_tts_audio(script, audio_path, voice_name=VOICE_NAME)
         
         print("步驟 4: 正在合成影片...")
         video_path = generate_video(audio_path, question)
