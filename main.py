@@ -12,6 +12,9 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 def main():
     try:
+        # 確保暫存音訊的資料夾存在
+        os.makedirs(TEMP_DIR, exist_ok=True)
+
         question = get_question()
         
         print("步驟 1: 正在生成回答...")
@@ -23,7 +26,8 @@ def main():
         print(f'{script=}')
         
         print("步驟 3: 正在生成語音 (此步驟可能需要較長時間)...")
-        audio_path = os.path.join(TEMP_DIR, "generated_audio.wav")
+        # Gemini TTS 產生的音訊是 mp3 格式
+        audio_path = os.path.join(TEMP_DIR, "generated_audio.mp3")
         generate_tts_audio(script, audio_path)
         
         print("步驟 4: 正在合成影片...")
