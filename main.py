@@ -7,6 +7,7 @@ from modules.video_generator import generate_video
 from config import TEMP_DIR, GEMINI_API_KEY
 
 VOICE_NAME = "Puck" # 可選 'Kore', 'Puck' 等
+SCRIPT_LANGUAGE = "Traditional Chinese"
 
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY not found. Please set it in your .env file.")
@@ -24,7 +25,7 @@ def main():
         print(f'{answer=}')
         
         print("步驟 2: 正在將回答轉換為演講稿...")
-        script = answer_to_script(answer, question)
+        script = answer_to_script(answer, question, language=SCRIPT_LANGUAGE)
         print(f'{script=}')
         
         print("步驟 3: 正在生成語音 (此步驟可能需要較長時間)...")
