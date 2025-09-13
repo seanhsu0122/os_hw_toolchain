@@ -1,4 +1,5 @@
 import os
+import sys
 import google.generativeai as genai
 from google.api_core import exceptions
 
@@ -9,22 +10,9 @@ def generate_tts_audio(
 ):
     """
     使用 Gemini TTS API 生成音訊檔案。
-
-    Args:
-        script (str): 要轉換為語音的文字腳本。
-        output_path (str): 輸出音訊檔案的儲存路徑 (例如 'output.mp3')。
-        model (str, optional): 要使用的 TTS 模型。
-                                 'models/tts-1' -> 速度快，品質好
-                                 'models/tts-1-hd' -> 品質更高，但生成速度較慢
-                                 預設為 "models/tts-1"。
     """
     try:
-        # Gemini TTS API 目前預設輸出為 MP3 格式
-        # 未來 API 可能會支援更多格式
-        if not output_path.lower().endswith('.mp3'):
-            print("提醒：目前 Gemini TTS API 主要生成 MP3 格式，建議輸出檔案以 .mp3 結尾。")
-
-        print(f"正在生成音訊，使用模型：{model}...")
+        print(f"腳本開始執行... 正在生成音訊，使用模型：{model}")
         
         # 呼叫 Gemini API 來合成語音
         response = genai.synthesize_speech(
@@ -33,7 +21,6 @@ def generate_tts_audio(
         )
 
         # 將 API 回傳的二進位音訊內容寫入檔案
-        # 'wb' 表示以二進位寫入模式開啟檔案
         with open(output_path, 'wb') as f:
             f.write(response.audio_content)
 
@@ -44,3 +31,31 @@ def generate_tts_audio(
         print("請檢查您的 API 金鑰是否有效、帳戶是否啟用，或網路連線是否正常。")
     except Exception as e:
         print(f"發生未預期的錯誤：{e}")
+
+
+# --- 程式執行的主入口 ---
+if __name__ == "__main__":
+    print(f"google-generativeai 套件版本: {genai.__version__}")
+    
+    # 1. 從環境變數讀取 API 金鑰
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        print("錯誤：環境變數 'GOOGLE_API_KEY' 未設定。請在執行時傳入。")
+        sys.exit(1) # 結束程式
+
+    # 2. 設定 SDK
+    try:
+        genai.configure(api_key=api_key)
+        print("Gemini API 金鑰設定成功。")
+    except Exception as e:
+        print(f"設定 API 金鑰時發生錯誤: {e}")
+        sys.exit(1)
+
+    # 3. 定義要轉換的文字和輸出檔案路徑
+    script_to_convert = "您好，這段語音是透過在 Colab 中執行 !python main.py 的方式生成的。"
+    output_file_path = "tts_from_script.mp3"
+
+    # 4. 呼叫函式
+    generate_tts_audio(script_to_convert, output_file_path)
+    
+    print("腳本執行完畢。")
