@@ -12,9 +12,11 @@ def main():
         
         print("步驟 1: 正在生成回答...")
         answer = generate_answer(question)
+        print(f'{answer=}')
         
         print("步驟 2: 正在將回答轉換為演講稿...")
         script = answer_to_script(answer)
+        print(f'{script=}')
         
         print("步驟 3: 正在生成語音 (此步驟可能需要較長時間)...")
         audio_path = os.path.join(TEMP_DIR, "generated_audio.wav")
