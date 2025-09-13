@@ -1,4 +1,4 @@
-import google.generativeai as genai
+import google.genai as genai
 
 def generate_answer(question: str) -> str:
     """
@@ -22,11 +22,14 @@ def answer_to_script(answer: str, question: str) -> str:
     """
     model = genai.GenerativeModel('gemini-1.5-flash')
 
-    # Design a prompt to convert the LLM's answer into a conversational and presentation-friendly script.
+    # This modified prompt explicitly instructs the model to only output the script text.
     prompt = f"""
-    Please convert the following answer about the question below into a conversational script suitable for a video presentation, with a length of about 30 seconds to 1 minute.
-    Please use simple and easy-to-understand vocabulary, avoid excessive technical jargon, so that even a non-technical audience can understand.
-    
+    Please convert the following answer to the question below into a conversational script for a video presentation.
+    The script's length should be suitable for a duration of about 30 seconds to 1 minute.
+    Use simple and easy-to-understand vocabulary, avoiding excessive technical jargon so that a non-technical audience can understand.
+
+    IMPORTANT: Your output should ONLY be the script's text. Do not include any other text, formatting, titles, scene descriptions, or speaker labels (like "Host:" or "Scenario:").
+
     Question:
     {question}
 
@@ -53,11 +56,6 @@ if __name__ == "__main__":
         script = answer_to_script(raw_answer, question)
         print("-" * 20)
         print("Converted Script:")
-        print(script)
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        print("Please check if your GEMINI_API_KEY is set correctly.")
         print(script)
 
     except Exception as e:
