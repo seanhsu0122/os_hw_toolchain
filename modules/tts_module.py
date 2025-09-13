@@ -1,14 +1,8 @@
 import os
 import numpy as np
 from scipy.io.wavfile import write as write_wav
-import torch
-
-# 修正 PyTorch 2.6+ 與 bark 的載入問題
-# 必須在 import bark 之前執行
-# 根據錯誤訊息提示，加入此行以允許載入必要的 numpy 型別
-torch.serialization.add_safe_globals([np.core.multiarray.scalar])
-
 from bark import generate_audio, SAMPLE_RATE
+import torch
 
 def generate_tts_audio(script: str, output_path: str):
     """
@@ -18,7 +12,9 @@ def generate_tts_audio(script: str, output_path: str):
     :param output_path: 輸出的音訊檔案路徑。
     """
     # 生成語音
-    audio_array = generate_audio(script, history_prompt="en_speaker_6")
+    # 使用 context manager 來處理 PyTorch 2.6+ 的安全載入問題，這是更穩健的作法
+    with torch.serialization.safe_globals([np.core.multiarray.scalar]):
+        audio_array = generate_audio(script, history_prompt="en_speaker_6")
     
     # 確保父目錄存在
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -39,6 +35,10 @@ if __name__ == "__main__":
     output_path = os.path.join(output_dir, output_filename)
     
     try:
+        generate_tts_audio(sample_script, output_path)
+    except Exception as e:
+        print(f"執行過程中發生錯誤：{e}")
+        print("請確認已安裝 bark 函式庫。")
         generate_tts_audio(sample_script, output_path)
     except Exception as e:
         print(f"執行過程中發生錯誤：{e}")
