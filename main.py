@@ -1,5 +1,4 @@
 import os
-import google.generativeai as genai
 from modules.input_module import get_question
 from modules.script_generator import generate_answer, answer_to_script
 from modules.tts_module import generate_tts_audio
@@ -8,10 +7,6 @@ from config import TEMP_DIR, GEMINI_API_KEY
 
 VOICE_NAME = "Puck" # 可選 'Kore', 'Puck' 等
 SCRIPT_LANGUAGE = "Traditional Chinese"
-
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY not found. Please set it in your .env file.")
-genai.configure(api_key=GEMINI_API_KEY)
 
 def main():
     try:

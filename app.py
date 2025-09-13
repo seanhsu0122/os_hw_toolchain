@@ -1,15 +1,10 @@
 import gradio as gr
 import os
-from google import genai
+import re
 from modules.script_generator import generate_answer, answer_to_script
 from modules.tts_module import generate_tts_audio
 from modules.video_generator import generate_video
-from config import TEMP_DIR, GEMINI_API_KEY, DEFAULT_BG_IMAGE, VIDEO_WIDTH, VIDEO_HEIGHT
-
-# Configure Gemini API
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY not found. Please set it in your .env file.")
-genai.configure(api_key=GEMINI_API_KEY)
+from config import TEMP_DIR, DEFAULT_BG_IMAGE, VIDEO_WIDTH, VIDEO_HEIGHT
 
 def create_video_pipeline(
     question,
@@ -50,6 +45,16 @@ def create_video_pipeline(
         # 決定背景圖片 (若使用者未上傳，則使用預設圖片)
         bg_path = background_image if background_image else DEFAULT_BG_IMAGE
 
+        # Convert rgba() color string from Gradio to FFmpeg-compatible hex format
+        ffmpeg_font_color = font_color
+        if isinstance(font_color, str) and font_color.startswith('rgba'):
+            rgba_match = re.match(r"rgba\(([\d\.]+),\s*([\d\.]+),\s*([\d\.]+),\s*([\d\.]+)\)", font_color)
+            if rgba_match:
+                r, g, b, a = [float(c) for c in rgba_match.groups()]
+                r_int, g_int, b_int = int(r), int(g), int(b)
+                a_int = int(a * 255)
+                ffmpeg_font_color = f"0x{r_int:02x}{g_int:02x}{b_int:02x}{a_int:02x}"
+
         video_path = generate_video(
             audio_path=audio_path,
             question_text=title_text,
@@ -58,7 +63,7 @@ def create_video_pipeline(
             width=int(video_width),
             height=int(video_height),
             font_size=int(font_size),
-            font_color=font_color
+            font_color=ffmpeg_font_color
         )
         
         print(f"\n✅ 影片已成功生成：{video_path}")
@@ -85,8 +90,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     allow_custom_value=True
                 )
                 tts_voice = gr.Dropdown(
-                    choices=["Puck", "Kore", "Chitral", "Karli", "Lhotse"],
-                    value="Puck",
+                    choices=['Zephyr', 'Puck', 'Charon', 'Kore', 'Fenrir', 'Leda', 'Orus', 'Aoede', 'Callirrhoe', 'Autonoe', 'Enceladus', 'Iapetus', 'Umbriel', 'Algieba', 'Despina', 'Erinome', 'Algenib', 'Rasalgethi', 'Laomedeia', 'Achernar', 'Alnilam', 'Schedar', 'Gacrux', 'Pulcherrima', 'Achird', 'Zubenelgenubi', 'Vindemiatrix', 'Sadachbia', 'Sadaltager', 'Sulafat'],
+                    value="Zephyr",
                     label="選擇語音人聲"
                 )
                 video_title = gr.Textbox(label="影片標題文字", placeholder="留空則使用您的問題")

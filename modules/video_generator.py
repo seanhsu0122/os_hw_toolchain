@@ -20,7 +20,7 @@ def generate_video(
     cmd = [
         "ffmpeg",
         "-y",  # Overwrite output file if it exists
-        "-loglevel", "error",
+        # "-loglevel", "error",
         "-loop", "1",
         "-i", bg_image_path,
         "-i", audio_path,
