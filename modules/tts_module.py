@@ -1,12 +1,14 @@
 import os
 import numpy as np
 from scipy.io.wavfile import write as write_wav
-from bark import generate_audio, SAMPLE_RATE
 import torch
 
 # 修正 PyTorch 2.6+ 與 bark 的載入問題
+# 必須在 import bark 之前執行
 # 根據錯誤訊息提示，加入此行以允許載入必要的 numpy 型別
 torch.serialization.add_safe_globals([np.core.multiarray.scalar])
+
+from bark import generate_audio, SAMPLE_RATE
 
 def generate_tts_audio(script: str, output_path: str):
     """
