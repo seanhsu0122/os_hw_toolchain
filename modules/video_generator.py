@@ -1,7 +1,7 @@
 # modules/video_generator.py
 import os
 import subprocess
-from config import VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, DEFAULT_BG_IMAGE
+from config import VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, DEFAULT_BG_IMAGE, FONT_PATH
 
 def generate_video(audio_path, question_text, output_name="output.mp4"):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -14,7 +14,7 @@ def generate_video(audio_path, question_text, output_name="output.mp4"):
         "-loop", "1",
         "-i", DEFAULT_BG_IMAGE,
         "-i", audio_path,
-        "-vf", f"scale={VIDEO_WIDTH}:{VIDEO_HEIGHT},drawtext=text='{question_text}':fontcolor=white:fontsize=40:x=(w-text_w)/2:y=(h-text_h)/2",
+        "-vf", f"scale={VIDEO_WIDTH}:{VIDEO_HEIGHT},drawtext=text='{question_text}':fontfile={FONT_PATH}:fontcolor=white:fontsize=40:x=(w-text_w)/2:y=(h-text_h)/2",
         "-c:v", "libx264",
         "-tune", "stillimage",
         "-c:a", "aac",

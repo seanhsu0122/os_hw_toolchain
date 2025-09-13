@@ -21,3 +21,6 @@ TEMP_DIR = "assets/audio"
 
 # 背景圖路徑
 DEFAULT_BG_IMAGE = "assets/images/bg_default.jpg"
+
+# 字型路徑
+FONT_PATH = "assets/fonts/NotoSansTC-Regular.ttf"
