@@ -2,6 +2,11 @@ import os
 import numpy as np
 from scipy.io.wavfile import write as write_wav
 from bark import generate_audio, SAMPLE_RATE
+import torch
+
+# 修正 PyTorch 2.6+ 與 bark 的載入問題
+# 根據錯誤訊息提示，加入此行以允許載入必要的 numpy 型別
+torch.serialization.add_safe_globals([np.core.multiarray.scalar])
 
 def generate_tts_audio(script: str, output_path: str):
     """
@@ -10,19 +15,16 @@ def generate_tts_audio(script: str, output_path: str):
     :param script: 待轉換的文字腳本。
     :param output_path: 輸出的音訊檔案路徑。
     """
-    try:
-        # 生成語音
-        audio_array = generate_audio(script, history_prompt="en_speaker_6")
-        
-        # 確保父目錄存在
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        # 將語音寫入 WAV 檔案
-        write_wav(output_path, SAMPLE_RATE, audio_array.astype(np.float32))
-        print(f"成功產生語音檔案: {output_path}")
+    # 生成語音
+    audio_array = generate_audio(script, history_prompt="en_speaker_6")
+    
+    # 確保父目錄存在
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    # 將語音寫入 WAV 檔案
+    write_wav(output_path, SAMPLE_RATE, audio_array.astype(np.float32))
+    print(f"成功產生語音檔案: {output_path}")
 
-    except Exception as e:
-        print(f"產生語音時發生錯誤：{e}")
 
 if __name__ == "__main__":
     # 測試腳本
