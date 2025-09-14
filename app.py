@@ -138,7 +138,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
                 background_image = gr.Image(type="filepath", label="上傳背景圖片 (預設為 config 中的圖片)")
 
-            btn = gr.Button("開始生成影片", variant="primary")
+            btn = gr.Button("啟動製作作業系統作業的系統作業程序", variant="primary")
 
         with gr.Column(scale=1):
             output_video = gr.Video(label="生成結果")
