@@ -90,7 +90,38 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     allow_custom_value=True
                 )
                 tts_voice = gr.Dropdown(
-                    choices=['Zephyr', 'Puck', 'Charon', 'Kore', 'Fenrir', 'Leda', 'Orus', 'Aoede', 'Callirrhoe', 'Autonoe', 'Enceladus', 'Iapetus', 'Umbriel', 'Algieba', 'Despina', 'Erinome', 'Algenib', 'Rasalgethi', 'Laomedeia', 'Achernar', 'Alnilam', 'Schedar', 'Gacrux', 'Pulcherrima', 'Achird', 'Zubenelgenubi', 'Vindemiatrix', 'Sadachbia', 'Sadaltager', 'Sulafat'],
+                    choices=[
+                        ("Zephyr (Bright, Higher pitch)", "Zephyr"),
+                        ("Puck (Upbeat, Middle pitch)", "Puck"),
+                        ("Charon (Informative, Lower pitch)", "Charon"),
+                        ("Kore (Firm, Middle pitch)", "Kore"),
+                        ("Fenrir (Excitable, Lower middle pitch)", "Fenrir"),
+                        ("Leda (Youthful, Higher pitch)", "Leda"),
+                        ("Orus (Firm, Lower middle pitch)", "Orus"),
+                        ("Aoede (Breezy, Middle pitch)", "Aoede"),
+                        ("Callirrhoe (Easy-going, Middle pitch)", "Callirrhoe"),
+                        ("Autonoe (Bright, Middle pitch)", "Autonoe"),
+                        ("Enceladus (Breathy, Lower pitch)", "Enceladus"),
+                        ("Iapetus (Clear, Lower middle pitch)", "Iapetus"),
+                        ("Umbriel (Easy-going, Lower middle pitch)", "Umbriel"),
+                        ("Algieba (Smooth, Lower pitch)", "Algieba"),
+                        ("Despina (Smooth, Middle pitch)", "Despina"),
+                        ("Erinome (Clear, Middle pitch)", "Erinome"),
+                        ("Algenib (Gravelly, Lower pitch)", "Algenib"),
+                        ("Rasalgethi (Informative, Middle pitch)", "Rasalgethi"),
+                        ("Laomedeia (Upbeat, Higher pitch)", "Laomedeia"),
+                        ("Achernar (Soft, Higher pitch)", "Achernar"),
+                        ("Alnilam (Firm, Lower middle pitch)", "Alnilam"),
+                        ("Schedar (Even, Lower middle pitch)", "Schedar"),
+                        ("Gacrux (Mature, Middle pitch)", "Gacrux"),
+                        ("Pulcherrima (Forward, Middle pitch)", "Pulcherrima"),
+                        ("Achird (Friendly, Lower middle pitch)", "Achird"),
+                        ("Zubenelgenubi (Casual, Lower middle pitch)", "Zubenelgenubi"),
+                        ("Vindemiatrix (Gentle, Middle pitch)", "Vindemiatrix"),
+                        ("Sadachbia (Lively, Lower pitch)", "Sadachbia"),
+                        ("Sadaltager (Knowledgeable, Middle pitch)", "Sadaltager"),
+                        ("Sulafat (Warm, Middle pitch)", "Sulafat")
+                    ],
                     value="Zephyr",
                     label="選擇語音人聲"
                 )
