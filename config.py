@@ -9,8 +9,8 @@ load_dotenv()
 VIDEO_WIDTH = 1280
 VIDEO_HEIGHT = 720
 VIDEO_FPS = 30
-OUTPUT_DIR = "assets/videos"
-TEMP_DIR = "assets/audio"
+OUTPUT_DIR = "output/videos"
+TEMP_DIR = "output/audio"
 
 # 背景圖路徑
 DEFAULT_BG_IMAGE = "assets/images/bg_default.jpg"
