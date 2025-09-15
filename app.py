@@ -4,7 +4,8 @@ import re
 from modules.script_generator import generate_script
 from modules.tts_module import generate_tts_audio
 from modules.video_generator import generate_video
-from config import TEMP_DIR, DEFAULT_BG_IMAGE, VIDEO_WIDTH, VIDEO_HEIGHT
+from modules.image_generator import generate_background_image # 1. 新增 import
+from config import TEMP_DIR, DEFAULT_BG_IMAGE, VIDEO_WIDTH, VIDEO_HEIGHT, IMAGE_DIR # 2. 修改 import
 
 # --- Backend Functions for each step ---
 
@@ -33,6 +34,23 @@ def step2_generate_audio(script, tts_voice):
     except Exception as e:
         print(f"\n❌ 步驟 2 發生錯誤：{e}")
         raise gr.Error(f"生成語音時發生錯誤: {e}")
+
+# 3. 新增圖片生成後端函數
+def step_generate_image(question):
+    """從問題生成背景圖片。"""
+    if not question or not question.strip():
+        raise gr.Error("問題不能為空，無法生成圖片！")
+    try:
+        print("步驟 2.5: 正在生成背景圖片...")
+        # 建立一個對檔案系統安全的檔名
+        safe_filename = re.sub(r'[\\/*?:"<>|]', "", question)[:30].strip() + ".png"
+        image_path = generate_background_image(question, output_name=safe_filename)
+        return image_path
+    except Exception as e:
+        print(f"\n❌ 步驟 2.5 發生錯誤：{e}")
+        # 提示用戶可能需要 GPU
+        error_message = f"生成背景圖片時發生錯誤: {e}\n\n提示：圖片生成功能 (Stable Diffusion) 非常耗費資源，建議在有 NVIDIA GPU 的環境下執行。若使用 CPU 可能會非常緩慢或因記憶體不足而失敗。"
+        raise gr.Error(error_message)
 
 def step3_generate_video(audio_path, question, video_title, background_image, video_width, video_height, font_size, font_color, output_filename):
     """Generates a video from audio and other settings."""
@@ -73,12 +91,26 @@ def step3_generate_video(audio_path, question, video_title, background_image, vi
         print(f"\n❌ 步驟 3 發生錯誤：{e}")
         raise gr.Error(f"合成影片時發生錯誤: {e}")
 
-def run_full_pipeline(question, script_language, tts_voice, video_width, video_height, background_image, video_title, font_size, font_color, output_filename):
+def run_full_pipeline(question, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, video_title, font_size, font_color, output_filename):
     """Orchestrates the entire video generation pipeline."""
+    # 1. Script
     script = step1_generate_script(question, script_language)
+    # 2. Audio
     audio_path = step2_generate_audio(script, tts_voice)
-    video_path = step3_generate_video(audio_path, question, video_title, background_image, video_width, video_height, font_size, font_color, output_filename)
-    return script, audio_path, video_path
+    
+    # 2.5. Image
+    final_bg_path = background_image_upload
+    generated_image_for_ui = background_image_upload # 預設為使用者上傳的
+    if use_ai_image:
+        print("一鍵生成流程：啟用 AI 背景圖生成。")
+        final_bg_path = step_generate_image(question)
+        generated_image_for_ui = final_bg_path
+
+    # 3. Video
+    video_path = step3_generate_video(audio_path, question, video_title, final_bg_path, video_width, video_height, font_size, font_color, output_filename)
+    
+    # 返回所有中間產物和最終結果
+    return script, audio_path, generated_image_for_ui, video_path
 
 
 # --- Gradio UI ---
@@ -147,7 +179,17 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 gr.Markdown("### 步驟 3: 合成影片")
                 with gr.Accordion("影片設定", open=True):
                     video_title = gr.Textbox(label="影片標題文字", placeholder="留空則使用您的問題")
-                    background_image = gr.Image(type="filepath", label="上傳背景圖片 (預設為 config 中的圖片)")
+                    
+                    # 5. 修改 UI 佈局
+                    gr.Markdown("#### 背景圖片設定")
+                    # 選項，決定「一鍵生成」時是否要用 AI 產圖
+                    use_ai_image_for_all = gr.Checkbox(label="[一鍵生成時] 使用 AI 生成新背景", value=True)
+                    
+                    # 手動控制區塊
+                    background_image = gr.Image(type="filepath", label="上傳背景 / AI 生成結果預覽")
+                    generate_image_btn = gr.Button("單獨生成 AI 背景圖 (會覆蓋上方圖片)", variant="secondary")
+                    
+                    gr.Markdown("---")
                     output_filename = gr.Textbox(value="output.mp4", label="輸出檔名")
                     with gr.Row():
                         video_width = gr.Slider(minimum=640, maximum=1920, value=VIDEO_WIDTH, step=2, label="影片寬度")
@@ -177,6 +219,13 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         outputs=[audio_output]
     )
     
+    # 6. 新增單獨生成圖片的按鈕事件
+    generate_image_btn.click(
+        fn=step_generate_image,
+        inputs=[question],
+        outputs=[background_image]
+    )
+    
     generate_video_btn.click(
         fn=step3_generate_video,
         inputs=[
@@ -191,9 +240,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         fn=run_full_pipeline,
         inputs=[
             question, script_language, tts_voice, video_width, video_height, 
-            background_image, video_title, font_size, font_color, output_filename
+            use_ai_image_for_all, background_image, video_title, font_size, font_color, output_filename
         ],
-        outputs=[script_output, audio_output, output_video]
+        outputs=[script_output, audio_output, background_image, output_video]
     )
 
 if __name__ == "__main__":
