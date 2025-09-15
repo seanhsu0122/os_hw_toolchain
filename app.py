@@ -130,7 +130,7 @@ def run_full_pipeline(question, script_language, tts_voice, video_width, video_h
 
 # --- Gradio UI ---
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# 🔹 Q&A 自動影片生成系統")
+    gr.Markdown("# 🔹 製作作業系統作業的系統作業程序")
     
     with gr.Row():
         with gr.Column(scale=2):
@@ -184,7 +184,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         with gr.Column(scale=1):
             gr.Markdown("### 最終結果")
             output_video = gr.Video(label="生成結果")
-            run_all_btn = gr.Button("🚀 一鍵生成全部", variant="primary")
+            run_all_btn = gr.Button("🚀 一鍵執行製作作業系統作業的系統作業程序", variant="primary")
 
     # --- Event Listeners ---
     
