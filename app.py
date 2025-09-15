@@ -196,7 +196,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                         video_height = gr.Slider(minimum=360, maximum=1080, value=VIDEO_HEIGHT, step=2, label="影片高度")
                     with gr.Row():
                         font_size = gr.Slider(minimum=20, maximum=100, value=40, step=1, label="字體大小")
-                        font_color = gr.ColorPicker(value="#000000", label="字體顏色")
+                        font_color = gr.ColorPicker(value="#ffffff", label="字體顏色")
                 generate_video_btn = gr.Button("3. 合成影片", variant="secondary")
 
         with gr.Column(scale=1):
