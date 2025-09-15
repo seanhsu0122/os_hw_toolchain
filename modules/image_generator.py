@@ -31,10 +31,11 @@ def generate_background_image(prompt: str, output_name: str = "generated_bg.png"
 
         # 為了讓圖片更美觀，可以在提示詞中加入一些風格描述
         full_prompt = f"{prompt}, cinematic, beautiful, high-res, detailed, professional photography"
+        negative_prompt = "out of frame, lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, username, watermark, signature."
         
         # 生成圖片
         print(f"使用提示詞生成圖片: {full_prompt}")
-        image = pipe(prompt=full_prompt).images[0]
+        image = pipe(prompt=full_prompt, negative_prompt=negative_prompt).images[0]
         
         # 儲存圖片
         os.makedirs(IMAGE_DIR, exist_ok=True)
