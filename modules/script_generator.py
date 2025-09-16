@@ -45,18 +45,23 @@ def generate_image_prompt(question: str, script_text: str) -> str:
     client = genai.Client()
 
     prompt = f"""
-    Your task is to create a concise, descriptive prompt in English for an AI image generator (like Stable Diffusion). This prompt will be used to create a background image for a video that answers a specific question.
+    Your task is to act as a visual designer. Your goal is to create a highly concise and impactful image prompt for an AI image generator (like Stable Diffusion). This image will be the background for a video explaining a topic.
 
-    The image should be an **illustration or diagram** that visually explains the core concepts of the answer. It should act as a visual aid to help the audience understand the topic. Analyze both the original question and the provided script (the answer) to create a relevant and explanatory visual concept.
+    **Instructions:**
+    1.  **Analyze the Core Message:** Read the original question and the video script (the answer) below. Identify the single most crucial concept, analogy, or key takeaway from the script.
+    2.  **Distill into a Visual:** Translate this core message into a powerful, symbolic, and minimalist visual concept. Think of it as creating a single slide that captures the entire presentation's essence.
+    3.  **Generate the Prompt:** Write a short, keyword-focused prompt in English that describes this visual concept.
 
-    - **Focus on illustration, diagrams, or conceptual art.** Avoid simple photographic scenes unless they are highly illustrative.
-    - **Do not include any text, labels, or words** in the visual description.
-    - The output MUST be only the prompt text itself, without any additional explanations or titles like "Image Prompt:".
+    **Constraints:**
+    - The prompt must be concise (5-15 words).
+    - The prompt must focus on creating an **illustration, infographic, or conceptual art**. Avoid realistic photos.
+    - The prompt must NOT contain any text, letters, or numbers.
+    - Your final output MUST be ONLY the prompt text itself, with no extra explanations or labels like "Image Prompt:".
 
-    Original Question:
+    **Original Question:**
     {question}
 
-    Video Script (Answer):
+    **Video Script (Answer):**
     {script_text}
     """
     
