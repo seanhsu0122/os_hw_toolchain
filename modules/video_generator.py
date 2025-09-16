@@ -11,10 +11,13 @@ def generate_video(
     width=VIDEO_WIDTH,
     height=VIDEO_HEIGHT,
     font_size=40,
-    font_color="black"
+    font_color="white"
 ):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     output_path = os.path.join(OUTPUT_DIR, output_name)
+    
+    # 限制為單行
+    question_text = question_text.replace('\n', ' ').replace('\r', '')
     
     # FFmpeg 命令：背景 + 音訊 + 問題文字
     cmd = [
@@ -24,7 +27,7 @@ def generate_video(
         "-loop", "1",
         "-i", bg_image_path,
         "-i", audio_path,
-        "-vf", f"scale={width}:{height},drawtext=text='{question_text}':fontfile={FONT_PATH}:fontcolor={font_color}:fontsize={font_size}:x=10:y=10",
+        "-vf", f"scale={width}:{height},drawtext=text='{question_text}':fontfile={FONT_PATH}:fontcolor={font_color}:fontsize={font_size}:x=10:y=50:box=1:boxcolor=black@0.5:boxborderw=15",
         "-c:v", "libx264",
         "-tune", "stillimage",
         "-c:a", "aac",
