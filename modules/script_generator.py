@@ -33,23 +33,28 @@ def generate_script(question: str, language: str = "English") -> str:
     )
     return response.text.strip()
 
-def generate_image_prompt(script_text: str) -> str:
+def generate_image_prompt(question: str, script_text: str) -> str:
     """
-    Generates a descriptive prompt for an image generation model based on a video script.
+    Generates a descriptive prompt for an image generation model based on a question and its corresponding script.
 
-    :param script_text: The video script.
+    :param question: The user's original input question.
+    :param script_text: The video script (the answer).
     :return: A descriptive prompt for image generation.
     """
     # The client gets the API key from the environment variable `GEMINI_API_KEY`.
     client = genai.Client()
 
     prompt = f"""
-    Based on the following video script, create a short, descriptive prompt in English for an AI image generator (like Stable Diffusion) to create a suitable background image for the video.
-    The prompt should describe a scene, concept, or an abstract visual that captures the essence of the script.
-    Focus on visual elements. Do not include text in the prompt.
-    Your output MUST be only the prompt text itself, without any additional explanations or titles like "Image Prompt:".
+    Your task is to create a concise, descriptive prompt in English for an AI image generator (like Stable Diffusion). This prompt will be used to create a background image for a video that answers a specific question.
 
-    Video Script:
+    The prompt should visually represent the core concepts of BOTH the question and the provided script (the answer). Extract the most important keywords and themes.
+    Focus on creating a visually appealing scene, concept, or abstract image. Avoid including any text in the prompt itself.
+    The output MUST be only the prompt text itself, without any additional explanations or titles like "Image Prompt:".
+
+    Original Question:
+    {question}
+
+    Video Script (Answer):
     {script_text}
     """
     
@@ -77,7 +82,8 @@ if __name__ == "__main__":
             print(script)
 
             print("\n--- Generating Image Prompt ---")
-            image_prompt = generate_image_prompt(script)
+            image_prompt = generate_image_prompt(question, script)
+            print(f"From Question: {question}")
             print(f"From Script: {script[:100]}...")
             print("-" * 20)
             print("Generated Image Prompt:")
