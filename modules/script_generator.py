@@ -33,24 +33,24 @@ def generate_script(question: str, language: str = "English") -> str:
     )
     return response.text.strip()
 
-def generate_image_prompt(question: str) -> str:
+def generate_image_prompt(script_text: str) -> str:
     """
-    Generates a descriptive prompt for an image generation model based on a question.
+    Generates a descriptive prompt for an image generation model based on a video script.
 
-    :param question: The user's original input question.
+    :param script_text: The video script.
     :return: A descriptive prompt for image generation.
     """
     # The client gets the API key from the environment variable `GEMINI_API_KEY`.
     client = genai.Client()
 
     prompt = f"""
-    Based on the following question, create a short, descriptive prompt in English for an AI image generator (like Stable Diffusion) to create a suitable background image for a video explaining the topic.
-    The prompt should describe a scene, concept, or an abstract visual that is relevant to the question.
+    Based on the following video script, create a short, descriptive prompt in English for an AI image generator (like Stable Diffusion) to create a suitable background image for the video.
+    The prompt should describe a scene, concept, or an abstract visual that captures the essence of the script.
     Focus on visual elements. Do not include text in the prompt.
     Your output MUST be only the prompt text itself, without any additional explanations or titles like "Image Prompt:".
 
-    Question:
-    {question}
+    Video Script:
+    {script_text}
     """
     
     response = client.models.generate_content(
@@ -77,8 +77,8 @@ if __name__ == "__main__":
             print(script)
 
             print("\n--- Generating Image Prompt ---")
-            image_prompt = generate_image_prompt(question)
-            print(f"Original question: {question}")
+            image_prompt = generate_image_prompt(script)
+            print(f"From Script: {script[:100]}...")
             print("-" * 20)
             print("Generated Image Prompt:")
             print(image_prompt)
