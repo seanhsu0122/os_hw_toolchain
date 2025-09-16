@@ -33,11 +33,10 @@ def generate_script(question: str, language: str = "English") -> str:
     )
     return response.text.strip()
 
-def generate_image_prompt(question: str, script_text: str) -> str:
+def generate_image_prompt(script_text: str) -> str:
     """
-    Generates a descriptive prompt for an image generation model based on a question and its corresponding script.
+    Generates a descriptive prompt for an image generation model based on a video script.
 
-    :param question: The user's original input question.
     :param script_text: The video script (the answer).
     :return: A descriptive prompt for image generation.
     """
@@ -45,14 +44,11 @@ def generate_image_prompt(question: str, script_text: str) -> str:
     client = genai.Client()
 
     prompt = f"""
-    Your task is to create a concise, descriptive prompt in English for an AI image generator (like Stable Diffusion). This prompt will be used to create a background image for a video that answers a specific question.
+    Your task is to create a concise, descriptive prompt in English for an AI image generator (like Stable Diffusion). This prompt will be used to create a background image for a video.
 
-    The prompt should visually represent the core concepts of BOTH the question and the provided script (the answer). Extract the most important keywords and themes.
+    The prompt should visually represent the core concepts of the provided video script. Extract the most important keywords and themes from the script.
     Focus on creating a visually appealing scene, concept, or abstract image. Avoid including any text in the prompt itself.
     The output MUST be only the prompt text itself, without any additional explanations or titles like "Image Prompt:".
-
-    Original Question:
-    {question}
 
     Video Script (Answer):
     {script_text}
@@ -82,8 +78,7 @@ if __name__ == "__main__":
             print(script)
 
             print("\n--- Generating Image Prompt ---")
-            image_prompt = generate_image_prompt(question, script)
-            print(f"From Question: {question}")
+            image_prompt = generate_image_prompt(script)
             print(f"From Script: {script[:100]}...")
             print("-" * 20)
             print("Generated Image Prompt:")

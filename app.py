@@ -30,7 +30,7 @@ def create_audio(script, tts_voice):
     try:
         print("[AUDIO] 正在生成語音...")
         os.makedirs(TEMP_DIR, exist_ok=True)
-        audio_path = os.path.join(TEMP_DIR, "generated_audio.mp3")
+        audio_path = os.path.join(TEMP_DIR, "generated_audio.wav") # 改為 .wav
         generate_tts_audio(script, audio_path, voice_name=tts_voice)
         print(f"[AUDIO] 語音生成完畢: {audio_path}")
         return audio_path
@@ -38,15 +38,13 @@ def create_audio(script, tts_voice):
         print(f"\n❌ [AUDIO] 發生錯誤：{e}")
         raise gr.Error(f"生成語音時發生錯誤: {e}")
 
-def create_background_image(question, script, video_width, video_height):
+def create_background_image(script, video_width, video_height):
     """Generates a background image from the script content."""
     if not script or not script.strip():
         raise gr.Error("演講稿不能為空，無法生成圖片！")
-    if not question or not question.strip():
-        raise gr.Error("問題不能為空，無法生成圖片！")
     try:
         print("[IMAGE] 正在為圖片生成建立提示詞...")
-        image_prompt = generate_image_prompt(question, script)
+        image_prompt = generate_image_prompt(script)
         print(f"[IMAGE] 生成的圖片提示詞: '{image_prompt}'")
 
         print("[IMAGE] 正在使用提示詞生成背景圖片...")
@@ -124,7 +122,7 @@ def run_full_pipeline(question, script_language, tts_voice, video_width, video_h
         image_prompt_for_ui = "未使用 AI 生成圖片" # Default message
         if use_ai_image:
             print("一鍵生成流程：啟用 AI 背景圖生成。")
-            image_prompt_for_ui, final_bg_path = create_background_image(question, script, video_width, video_height)
+            image_prompt_for_ui, final_bg_path = create_background_image(script, video_width, video_height)
         
         # 4. Video Generation
         progress(0.8, desc="[4/4] 正在合成最終影片...")
@@ -218,7 +216,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     
     generate_image_btn.click(
         fn=create_background_image,
-        inputs=[question, script_output, video_width, video_height],
+        inputs=[script_output, video_width, video_height],
         outputs=[image_prompt_output, background_image_input]
     )
     
