@@ -1,6 +1,7 @@
 import gradio as gr
 import os
 import re
+import time # 新增 time 模組
 from modules.script_generator import generate_script as sg_generate_script, generate_image_prompt # 使用別名避免命名衝突
 from modules.tts_module import generate_tts_audio
 from modules.video_generator import generate_video as vg_generate_video # 使用別名避免命名衝突
@@ -47,8 +48,9 @@ def create_background_image(script, video_width, video_height):
         print(f"[IMAGE] 生成的圖片提示詞: '{image_prompt}'")
 
         print("[IMAGE] 正在使用提示詞生成背景圖片...")
-        # 建立一個對檔案系統安全的檔名
-        safe_filename = re.sub(r'[\\/*?:"<>|]', "", script)[:30].strip() + ".png"
+        # 建立一個對檔案系統安全的檔名，使用時間戳以避免中文路徑
+        timestamp = int(time.time())
+        safe_filename = f"bg_{timestamp}.png"
         image_path = generate_background_image(
             image_prompt,
             output_name=safe_filename,
