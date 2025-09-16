@@ -33,10 +33,11 @@ def generate_script(question: str, language: str = "English") -> str:
     )
     return response.text.strip()
 
-def generate_image_prompt(script_text: str) -> str:
+def generate_image_prompt(question: str, script_text: str) -> str:
     """
-    Generates a descriptive prompt for an image generation model based on a video script.
+    Generates a descriptive prompt for an image generation model based on a question and its corresponding script.
 
+    :param question: The user's original input question.
     :param script_text: The video script (the answer).
     :return: A descriptive prompt for image generation.
     """
@@ -44,11 +45,16 @@ def generate_image_prompt(script_text: str) -> str:
     client = genai.Client()
 
     prompt = f"""
-    Your task is to create a concise, descriptive prompt in English for an AI image generator (like Stable Diffusion). This prompt will be used to create a background image for a video.
+    Your task is to create a concise, descriptive prompt in English for an AI image generator (like Stable Diffusion). This prompt will be used to create a background image for a video that answers a specific question.
 
-    The prompt should visually represent the core concepts of the provided video script. Extract the most important keywords and themes from the script.
-    Focus on creating a visually appealing scene, concept, or abstract image. Avoid including any text in the prompt itself.
-    The output MUST be only the prompt text itself, without any additional explanations or titles like "Image Prompt:".
+    The image should be an **illustration or diagram** that visually explains the core concepts of the answer. It should act as a visual aid to help the audience understand the topic. Analyze both the original question and the provided script (the answer) to create a relevant and explanatory visual concept.
+
+    - **Focus on illustration, diagrams, or conceptual art.** Avoid simple photographic scenes unless they are highly illustrative.
+    - **Do not include any text, labels, or words** in the visual description.
+    - The output MUST be only the prompt text itself, without any additional explanations or titles like "Image Prompt:".
+
+    Original Question:
+    {question}
 
     Video Script (Answer):
     {script_text}
@@ -78,7 +84,8 @@ if __name__ == "__main__":
             print(script)
 
             print("\n--- Generating Image Prompt ---")
-            image_prompt = generate_image_prompt(script)
+            image_prompt = generate_image_prompt(question, script)
+            print(f"From Question: {question}")
             print(f"From Script: {script[:100]}...")
             print("-" * 20)
             print("Generated Image Prompt:")
