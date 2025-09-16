@@ -33,6 +33,33 @@ def generate_script(question: str, language: str = "English") -> str:
     )
     return response.text.strip()
 
+def generate_image_prompt(question: str) -> str:
+    """
+    Generates a descriptive prompt for an image generation model based on a question.
+
+    :param question: The user's original input question.
+    :return: A descriptive prompt for image generation.
+    """
+    # The client gets the API key from the environment variable `GEMINI_API_KEY`.
+    client = genai.Client()
+
+    prompt = f"""
+    Based on the following question, create a short, descriptive prompt in English for an AI image generator (like Stable Diffusion) to create a suitable background image for a video explaining the topic.
+    The prompt should describe a scene, concept, or an abstract visual that is relevant to the question.
+    Focus on visual elements. Do not include text in the prompt.
+    Your output MUST be only the prompt text itself, without any additional explanations or titles like "Image Prompt:".
+
+    Question:
+    {question}
+    """
+    
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
+    return response.text.strip()
+
+
 if __name__ == "__main__":
     # Ensure your GEMINI_API_KEY is set as an environment variable before running.
     if "GEMINI_API_KEY" not in os.environ:
@@ -48,6 +75,13 @@ if __name__ == "__main__":
             print("-" * 20)
             print("Generated Script:")
             print(script)
+
+            print("\n--- Generating Image Prompt ---")
+            image_prompt = generate_image_prompt(question)
+            print(f"Original question: {question}")
+            print("-" * 20)
+            print("Generated Image Prompt:")
+            print(image_prompt)
 
         except Exception as e:
             print(f"An error occurred: {e}")

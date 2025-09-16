@@ -1,15 +1,22 @@
 import torch
 from diffusers import DiffusionPipeline
 import os
-from config import IMAGE_DIR
+from config import IMAGE_DIR, VIDEO_WIDTH, VIDEO_HEIGHT
 
-def generate_background_image(prompt: str, output_name: str = "generated_bg.png"):
+def generate_background_image(
+    prompt: str, 
+    output_name: str = "generated_bg.png",
+    width: int = VIDEO_WIDTH,
+    height: int = VIDEO_HEIGHT
+):
     """
     使用 Stable Diffusion 生成背景圖片。
 
     Args:
         prompt (str): 用於生成圖片的文字提示。
         output_name (str, optional): 輸出的圖片檔名. Defaults to "generated_bg.png".
+        width (int, optional): 圖片寬度. Defaults to VIDEO_WIDTH from config.
+        height (int, optional): 圖片高度. Defaults to VIDEO_HEIGHT from config.
 
     Returns:
         str: 生成圖片的完整路徑。
@@ -35,7 +42,12 @@ def generate_background_image(prompt: str, output_name: str = "generated_bg.png"
         
         # 生成圖片
         print(f"使用提示詞生成圖片: {full_prompt}")
-        image = pipe(prompt=full_prompt, negative_prompt=negative_prompt).images[0]
+        image = pipe(
+            prompt=full_prompt, 
+            negative_prompt=negative_prompt,
+            width=width,
+            height=height
+        ).images[0]
         
         # 儲存圖片
         os.makedirs(IMAGE_DIR, exist_ok=True)

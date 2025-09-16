@@ -1,7 +1,7 @@
 import gradio as gr
 import os
 import re
-from modules.script_generator import generate_script as sg_generate_script # 使用別名避免命名衝突
+from modules.script_generator import generate_script as sg_generate_script, generate_image_prompt # 使用別名避免命名衝突
 from modules.tts_module import generate_tts_audio
 from modules.video_generator import generate_video as vg_generate_video # 使用別名避免命名衝突
 from modules.image_generator import generate_background_image
@@ -37,17 +37,26 @@ def create_audio(script, tts_voice):
         print(f"\n❌ [AUDIO] 發生錯誤：{e}")
         raise gr.Error(f"生成語音時發生錯誤: {e}")
 
-def create_background_image(question):
+def create_background_image(question, video_width, video_height):
     """Generates a background image from the question prompt."""
     if not question or not question.strip():
         raise gr.Error("問題不能為空，無法生成圖片！")
     try:
-        print("[IMAGE] 正在生成背景圖片...")
+        print("[IMAGE] 正在為圖片生成建立提示詞...")
+        image_prompt = generate_image_prompt(question)
+        print(f"[IMAGE] 生成的圖片提示詞: '{image_prompt}'")
+
+        print("[IMAGE] 正在使用提示詞生成背景圖片...")
         # 建立一個對檔案系統安全的檔名
         safe_filename = re.sub(r'[\\/*?:"<>|]', "", question)[:30].strip() + ".png"
-        image_path = generate_background_image(question, output_name=safe_filename)
+        image_path = generate_background_image(
+            image_prompt,
+            output_name=safe_filename,
+            width=int(video_width),
+            height=int(video_height)
+        )
         print(f"[IMAGE] 背景圖片生成完畢: {image_path}")
-        return image_path
+        return image_prompt, image_path
     except Exception as e:
         print(f"\n❌ [IMAGE] 發生錯誤：{e}")
         error_message = f"生成背景圖片時發生錯誤: {e}\n\n提示：圖片生成功能 (Stable Diffusion) 非常耗費資源，建議在有 NVIDIA GPU 的環境下執行。若使用 CPU 可能會非常緩慢或因記憶體不足而失敗。"
@@ -106,11 +115,12 @@ def run_full_pipeline(question, script_language, tts_voice, video_width, video_h
         audio_path = create_audio(script, tts_voice)
         
         # 3. Image Generation
-        progress(0.6, desc="[3/4] 正在處理背景圖片...")
+        progress(0.6, desc="[3/4] 正在生成背景圖片 (包含提示詞)...")
         final_bg_path = background_image_upload
+        image_prompt_for_ui = "未使用 AI 生成圖片" # Default message
         if use_ai_image:
             print("一鍵生成流程：啟用 AI 背景圖生成。")
-            final_bg_path = create_background_image(question)
+            image_prompt_for_ui, final_bg_path = create_background_image(question, video_width, video_height)
         
         # 4. Video Generation
         progress(0.8, desc="[4/4] 正在合成最終影片...")
@@ -118,7 +128,7 @@ def run_full_pipeline(question, script_language, tts_voice, video_width, video_h
         
         progress(1.0, desc="全部完成！")
         # 返回所有中間產物和最終結果
-        return script, audio_path, final_bg_path, video_path
+        return script, audio_path, final_bg_path, video_path, image_prompt_for_ui
     except gr.Error as e:
         # Gradio Errors are already user-friendly, just re-raise
         raise e
@@ -170,6 +180,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     
                     background_image_input = gr.Image(type="filepath", label="上傳背景 / AI 生成結果預覽")
                     generate_image_btn = gr.Button("單獨生成 AI 背景圖 (會覆蓋上方圖片)", variant="secondary")
+                    image_prompt_output = gr.Textbox(label="AI 生成的圖片提示詞 (Prompt)", interactive=False)
                     
                     gr.Markdown("---")
                     output_filename = gr.Textbox(value="output.mp4", label="輸出檔名")
@@ -203,8 +214,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     
     generate_image_btn.click(
         fn=create_background_image,
-        inputs=[question],
-        outputs=[background_image_input]
+        inputs=[question, video_width, video_height],
+        outputs=[image_prompt_output, background_image_input]
     )
     
     generate_video_btn.click(
@@ -223,7 +234,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             question, script_language, tts_voice, video_width, video_height, 
             use_ai_image_for_all, background_image_input, video_title, font_size, font_color, output_filename
         ],
-        outputs=[script_output, audio_output, background_image_input, output_video]
+        outputs=[script_output, audio_output, background_image_input, output_video, image_prompt_output]
     )
 
 if __name__ == "__main__":
