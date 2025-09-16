@@ -45,16 +45,17 @@ def generate_image_prompt(question: str, script_text: str) -> str:
     client = genai.Client()
 
     prompt = f"""
-    Your task is to act as a visual designer. Your goal is to create a highly concise and impactful image prompt for an AI image generator (like Stable Diffusion). This image will be the background for a video explaining a topic.
+    Your task is to act as a concept artist. Your goal is to create a highly concise and impactful image prompt for an AI image generator (like Stable Diffusion). This image will serve as an explanatory background for a video.
 
     **Instructions:**
-    1.  **Analyze the Core Message:** Read the original question and the video script (the answer) below. Identify the single most crucial concept, analogy, or key takeaway from the script.
-    2.  **Distill into a Visual:** Translate this core message into a powerful, symbolic, and minimalist visual concept. Think of it as creating a single slide that captures the entire presentation's essence.
-    3.  **Generate the Prompt:** Write a short, keyword-focused prompt in English that describes this visual concept.
+    1.  **Synthesize the Core Concept:** Read the original question and the video script (the answer). Your main goal is to find the central idea that connects the question to the answer.
+    2.  **Look Beyond Metaphors:** The script might use analogies or metaphors to explain a concept. Do not illustrate the metaphor literally. Instead, identify the **underlying principle** the metaphor is trying to explain.
+    3.  **Create a Visual Concept:** Design a symbolic, minimalist visual that represents this underlying principle. The visual must be relevant to both the question's topic and the script's explanation.
+    4.  **Generate the Prompt:** Write a short, keyword-focused prompt in English that describes this visual concept.
 
     **Constraints:**
     - The prompt must be concise (5-15 words).
-    - The prompt must focus on creating an **illustration, infographic, or conceptual art**. Avoid realistic photos.
+    - The prompt must describe an **illustration, infographic, or conceptual art**. Avoid realistic photos.
     - The prompt must NOT contain any text, letters, or numbers.
     - Your final output MUST be ONLY the prompt text itself, with no extra explanations or labels like "Image Prompt:".
 
