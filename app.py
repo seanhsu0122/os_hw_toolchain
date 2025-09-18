@@ -214,7 +214,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     lines=10, 
                     placeholder="""例如：
 1. CPU 和 GPU 的差別是什麼？
+
 2. 什麼是 RAM？
+
 什麼是量子糾纏？"""
                 )
                 script_language = gr.Dropdown(
