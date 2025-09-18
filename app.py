@@ -38,7 +38,10 @@ def create_audio(script, tts_voice):
     try:
         print("[AUDIO] 正在生成語音...")
         os.makedirs(TEMP_DIR, exist_ok=True)
-        audio_path = os.path.join(TEMP_DIR, "generated_audio.wav") # 改為 .wav
+        # 建立唯一的檔名以避免在批次處理中被覆蓋
+        timestamp = int(time.time())
+        audio_filename = f"audio_{timestamp}.wav"
+        audio_path = os.path.join(TEMP_DIR, audio_filename)
         generate_tts_audio(script, audio_path, voice_name=tts_voice)
         print(f"[AUDIO] 語音生成完畢: {audio_path}")
         return audio_path
@@ -115,12 +118,39 @@ def create_video(audio_path, question, video_title, background_image, video_widt
 
 # --- Pipeline Orchestrator ---
 
+def run_single_pipeline(question, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, video_title, font_size, font_color, output_filename):
+    """為單一問題執行完整的影片生成流程。"""
+    # 步驟 1: 生成演講稿
+    script = create_script(question, script_language)
+    
+    # 步驟 2: 生成語音
+    audio_path = create_audio(script, tts_voice)
+    
+    # 步驟 3: 生成背景圖片
+    final_bg_path = background_image_upload
+    image_prompt_for_ui = "未使用 AI 生成圖片"
+    if use_ai_image:
+        image_prompt_for_ui, final_bg_path = create_background_image(question, script, video_width, video_height)
+    
+    # 步驟 4: 合成影片
+    video_path = create_video(audio_path, question, video_title, final_bg_path, video_width, video_height, font_size, font_color, output_filename)
+    
+    return script, audio_path, final_bg_path, video_path, image_prompt_for_ui
+
 def run_batch_pipeline(questions_text, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, video_title, font_size, font_color, output_filename_prefix, progress=gr.Progress(track_tqdm=True)):
     """為多個問題執行整個影片生成流程."""
     
-    # 1. 從輸入文字中解析問題列表
-    lines = questions_text.strip().split('\n')
-    questions = [re.sub(r"^\d+\.\s*", "", line).strip() for line in lines if line.strip()]
+    # 1. 從輸入文字中解析問題列表 (優化版，支援多行問題)
+    question_blocks = re.split(r'\n\s*\n', questions_text.strip())
+    questions = []
+    for block in question_blocks:
+        if not block.strip():
+            continue
+        # 將區塊內的換行合併為空格，並移除前方的項目符號 (如 1., *, -)
+        question = ' '.join(line.strip() for line in block.split('\n'))
+        question = re.sub(r"^\s*(\d+\.|\*|-)\s*", "", question).strip()
+        if question:
+            questions.append(question)
     
     if not questions:
         raise gr.Error("請輸入至少一個問題！")
@@ -135,27 +165,24 @@ def run_batch_pipeline(questions_text, script_language, tts_voice, video_width, 
         progress(i / total_questions, desc=f"[{i+1}/{total_questions}] 處理中: {question[:30]}...")
         
         try:
-            # --- 為單一問題執行流程 ---
-            
-            # 步驟 1: 生成演講稿
-            script = create_script(question, script_language)
-            
-            # 步驟 2: 生成語音
-            audio_path = create_audio(script, tts_voice)
-            
-            # 步驟 3: 生成背景圖片
-            final_bg_path = background_image_upload
-            image_prompt_for_ui = "未使用 AI 生成圖片"
-            if use_ai_image:
-                image_prompt_for_ui, final_bg_path = create_background_image(question, script, video_width, video_height)
-            
-            # 步驟 4: 合成影片
+            # --- 為每個問題獨立執行一次完整的流程 ---
             sanitized_q = sanitize_filename(question)
             unique_output_filename = f"{output_filename_prefix}_{sanitized_q}.mp4"
-            
-            current_video_title = video_title if video_title and video_title.strip() else question
+            current_video_title = question # 在批次模式下，標題就是問題本身
 
-            video_path = create_video(audio_path, question, current_video_title, final_bg_path, video_width, video_height, font_size, font_color, unique_output_filename)
+            script, audio_path, final_bg_path, video_path, image_prompt_for_ui = run_single_pipeline(
+                question=question,
+                script_language=script_language,
+                tts_voice=tts_voice,
+                video_width=video_width,
+                video_height=video_height,
+                use_ai_image=use_ai_image,
+                background_image_upload=background_image_upload,
+                video_title=current_video_title,
+                font_size=font_size,
+                font_color=font_color,
+                output_filename=unique_output_filename
+            )
             
             video_paths.append(video_path)
 
@@ -215,7 +242,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             with gr.Group():
                 gr.Markdown("### 3. 影片 (Video)")
                 with gr.Accordion("影片設定", open=True):
-                    video_title = gr.Textbox(label="影片標題文字", placeholder="留空則使用您的問題")
+                    video_title = gr.Textbox(label="影片標題文字 (批次處理時會被忽略)", placeholder="留空則使用您的問題")
                     
                     gr.Markdown("#### 背景圖片設定")
                     use_ai_image_for_all = gr.Checkbox(label="[一鍵生成時] 使用 AI 生成新背景", value=True)

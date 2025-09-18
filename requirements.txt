@@ -8,3 +8,4 @@ gradio
 python-dotenv
 diffusers
 invisible-watermark
+tqdm
