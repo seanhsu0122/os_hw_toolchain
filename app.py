@@ -8,6 +8,14 @@ from modules.video_generator import generate_video as vg_generate_video # 使用
 from modules.image_generator import generate_background_image
 from config import TEMP_DIR, DEFAULT_BG_IMAGE, VIDEO_WIDTH, VIDEO_HEIGHT
 
+# --- Helper Functions ---
+
+def sanitize_filename(text: str) -> str:
+    """將字串清理成適合做為檔名的格式."""
+    text = re.sub(r'[\\/*?:"<>|]', "", text)  # 移除無效字元
+    text = re.sub(r'\s+', '_', text) # 將空白替換為底線
+    return text[:50].strip('_')
+
 # --- Backend Logic Functions ---
 
 def create_script(question, script_language):
@@ -107,39 +115,62 @@ def create_video(audio_path, question, video_title, background_image, video_widt
 
 # --- Pipeline Orchestrator ---
 
-def run_full_pipeline(question, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, video_title, font_size, font_color, output_filename, progress=gr.Progress(track_tqdm=True)):
-    """Orchestrates the entire video generation pipeline."""
-    try:
-        # 1. Script Generation
-        progress(0.2, desc="[1/4] 正在生成演講稿...")
-        script = create_script(question, script_language)
+def run_batch_pipeline(questions_text, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, video_title, font_size, font_color, output_filename_prefix, progress=gr.Progress(track_tqdm=True)):
+    """為多個問題執行整個影片生成流程."""
+    
+    # 1. 從輸入文字中解析問題列表
+    lines = questions_text.strip().split('\n')
+    questions = [re.sub(r"^\d+\.\s*", "", line).strip() for line in lines if line.strip()]
+    
+    if not questions:
+        raise gr.Error("請輸入至少一個問題！")
+
+    video_paths = []
+    total_questions = len(questions)
+    
+    # 用於儲存最後一個問題的結果以更新 UI 預覽
+    last_script, last_audio, last_bg, last_video, last_prompt = "", None, None, None, ""
+
+    for i, question in enumerate(questions):
+        progress(i / total_questions, desc=f"[{i+1}/{total_questions}] 處理中: {question[:30]}...")
         
-        # 2. Audio Generation
-        progress(0.4, desc="[2/4] 正在生成語音...")
-        audio_path = create_audio(script, tts_voice)
-        
-        # 3. Image Generation
-        progress(0.6, desc="[3/4] 正在生成背景圖片 (包含提示詞)...")
-        final_bg_path = background_image_upload
-        image_prompt_for_ui = "未使用 AI 生成圖片" # Default message
-        if use_ai_image:
-            print("一鍵生成流程：啟用 AI 背景圖生成。")
-            image_prompt_for_ui, final_bg_path = create_background_image(question, script, video_width, video_height)
-        
-        # 4. Video Generation
-        progress(0.8, desc="[4/4] 正在合成最終影片...")
-        video_path = create_video(audio_path, question, video_title, final_bg_path, video_width, video_height, font_size, font_color, output_filename)
-        
-        progress(1.0, desc="全部完成！")
-        # 返回所有中間產物和最終結果
-        return script, audio_path, final_bg_path, video_path, image_prompt_for_ui
-    except gr.Error as e:
-        # Gradio Errors are already user-friendly, just re-raise
-        raise e
-    except Exception as e:
-        # Catch any other unexpected errors
-        print(f"Pipeline 執行時發生未知錯誤: {e}")
-        raise gr.Error(f"處理過程中發生未知錯誤: {e}")
+        try:
+            # --- 為單一問題執行流程 ---
+            
+            # 步驟 1: 生成演講稿
+            script = create_script(question, script_language)
+            
+            # 步驟 2: 生成語音
+            audio_path = create_audio(script, tts_voice)
+            
+            # 步驟 3: 生成背景圖片
+            final_bg_path = background_image_upload
+            image_prompt_for_ui = "未使用 AI 生成圖片"
+            if use_ai_image:
+                image_prompt_for_ui, final_bg_path = create_background_image(question, script, video_width, video_height)
+            
+            # 步驟 4: 合成影片
+            sanitized_q = sanitize_filename(question)
+            unique_output_filename = f"{output_filename_prefix}_{sanitized_q}.mp4"
+            
+            current_video_title = video_title if video_title and video_title.strip() else question
+
+            video_path = create_video(audio_path, question, current_video_title, final_bg_path, video_width, video_height, font_size, font_color, unique_output_filename)
+            
+            video_paths.append(video_path)
+
+            # 更新最後一次的結果以供 UI 預覽
+            last_script, last_audio, last_bg, last_video, last_prompt = script, audio_path, final_bg_path, video_path, image_prompt_for_ui
+
+        except Exception as e:
+            gr.Warning(f"處理問題 '{question}' 時發生錯誤: {e}")
+            # 發生錯誤時，停止後續處理，但返回已成功生成的影片
+            break
+
+    progress(1.0, desc="全部處理完畢！")
+    
+    # 返回所有生成的影片路徑，以及最後一個的詳細資訊用於預覽
+    return last_script, last_audio, last_bg, last_video, last_prompt, video_paths
 
 
 # --- Gradio UI ---
@@ -151,7 +182,14 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             # --- Section 1: Script ---
             with gr.Group():
                 gr.Markdown("### 1. 演講稿 (Script)")
-                question = gr.Textbox(label="請輸入您的問題", lines=3, placeholder="例如：什麼是量子糾纏？")
+                question = gr.Textbox(
+                    label="請輸入您的問題 (每行一個)", 
+                    lines=10, 
+                    placeholder="""例如：
+1. CPU 和 GPU 的差別是什麼？
+2. 什麼是 RAM？
+什麼是量子糾纏？"""
+                )
                 script_language = gr.Dropdown(
                     choices=["Traditional Chinese", "English", "Japanese"], 
                     value="Traditional Chinese",
@@ -187,7 +225,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     image_prompt_output = gr.Textbox(label="AI 生成的圖片提示詞 (Prompt)", interactive=False)
                     
                     gr.Markdown("---")
-                    output_filename = gr.Textbox(value="output.mp4", label="輸出檔名")
+                    output_filename = gr.Textbox(value="output", label="輸出檔名前綴")
                     with gr.Row():
                         video_width = gr.Slider(minimum=640, maximum=1920, value=VIDEO_WIDTH, step=2, label="影片寬度")
                         video_height = gr.Slider(minimum=360, maximum=1080, value=VIDEO_HEIGHT, step=2, label="影片高度")
@@ -198,7 +236,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
         with gr.Column(scale=1):
             gr.Markdown("### 最終結果")
-            output_video = gr.Video(label="生成結果")
+            output_video = gr.Video(label="生成結果預覽 (最後一部)")
+            output_files = gr.File(label="所有生成的影片檔案", file_count="multiple")
             run_all_btn = gr.Button("🚀 一鍵執行製作作業系統作業的系統作業程序", variant="primary")
 
     # --- Event Listeners ---
@@ -233,12 +272,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     
     # "Run All" button
     run_all_btn.click(
-        fn=run_full_pipeline,
+        fn=run_batch_pipeline,
         inputs=[
             question, script_language, tts_voice, video_width, video_height, 
             use_ai_image_for_all, background_image_input, video_title, font_size, font_color, output_filename
         ],
-        outputs=[script_output, audio_output, background_image_input, output_video, image_prompt_output]
+        outputs=[script_output, audio_output, background_image_input, output_video, image_prompt_output, output_files]
     )
 
 if __name__ == "__main__":
