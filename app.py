@@ -2,7 +2,7 @@ import gradio as gr
 import os
 import re
 import time # 新增 time 模組
-from modules.script_generator import generate_script as sg_generate_script, generate_image_prompt # 使用別名避免命名衝突
+from modules.script_generator import generate_script as sg_generate_script, generate_image_prompt, _initialize_llm as initialize_llm_model # 使用別名避免命名衝突
 from modules.tts_module import generate_tts_audio
 from modules.video_generator import generate_video as vg_generate_video # 使用別名避免命名衝突
 from modules.image_generator import generate_background_image
@@ -233,39 +233,20 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 gr.Markdown("### 2. 語音 (Audio)")
                 tts_voice = gr.Dropdown(
                     choices=[
-                        ("Zephyr (Bright, Higher pitch)", "Zephyr"),
-                        ("Puck (Upbeat, Middle pitch)", "Puck"),
-                        ("Charon (Informative, Lower pitch)", "Charon"),
-                        ("Kore (Firm, Middle pitch)", "Kore"),
-                        ("Fenrir (Excitable, Lower middle pitch)", "Fenrir"),
-                        ("Leda (Youthful, Higher pitch)", "Leda"),
-                        ("Orus (Firm, Lower middle pitch)", "Orus"),
-                        ("Aoede (Breezy, Middle pitch)", "Aoede"),
-                        ("Callirrhoe (Easy-going, Middle pitch)", "Callirrhoe"),
-                        ("Autonoe (Bright, Middle pitch)", "Autonoe"),
-                        ("Enceladus (Breathy, Lower pitch)", "Enceladus"),
-                        ("Iapetus (Clear, Lower middle pitch)", "Iapetus"),
-                        ("Umbriel (Easy-going, Lower middle pitch)", "Umbriel"),
-                        ("Algieba (Smooth, Lower pitch)", "Algieba"),
-                        ("Despina (Smooth, Middle pitch)", "Despina"),
-                        ("Erinome (Clear, Middle pitch)", "Erinome"),
-                        ("Algenib (Gravelly, Lower pitch)", "Algenib"),
-                        ("Rasalgethi (Informative, Middle pitch)", "Rasalgethi"),
-                        ("Laomedeia (Upbeat, Higher pitch)", "Laomedeia"),
-                        ("Achernar (Soft, Higher pitch)", "Achernar"),
-                        ("Alnilam (Firm, Lower middle pitch)", "Alnilam"),
-                        ("Schedar (Even, Lower middle pitch)", "Schedar"),
-                        ("Gacrux (Mature, Middle pitch)", "Gacrux"),
-                        ("Pulcherrima (Forward, Middle pitch)", "Pulcherrima"),
-                        ("Achird (Friendly, Lower middle pitch)", "Achird"),
-                        ("Zubenelgenubi (Casual, Lower middle pitch)", "Zubenelgenubi"),
-                        ("Vindemiatrix (Gentle, Middle pitch)", "Vindemiatrix"),
-                        ("Sadachbia (Lively, Lower pitch)", "Sadachbia"),
-                        ("Sadaltager (Knowledgeable, Middle pitch)", "Sadaltager"),
-                        ("Sulafat (Warm, Middle pitch)", "Sulafat")
+                        ("English Speaker 1 (Male, Calm)", "en_speaker_1"),
+                        ("English Speaker 2 (Male, Raspy)", "en_speaker_2"),
+                        ("English Speaker 3 (Male, Smooth)", "en_speaker_3"),
+                        ("English Speaker 4 (Male, Raspy)", "en_speaker_4"),
+                        ("English Speaker 5 (Male, Calm)", "en_speaker_5"),
+                        ("English Speaker 6 (Male, Casual)", "en_speaker_6"),
+                        ("English Speaker 7 (Male, Smooth)", "en_speaker_7"),
+                        ("English Speaker 8 (Female, Calm)", "en_speaker_8"),
+                        ("English Speaker 9 (Female, Raspy)", "en_speaker_9"),
+                        ("Chinese Speaker", "zh_speaker_2"),
+                        ("Japanese Speaker", "ja_speaker_1"),
                     ],
-                    value="Zephyr",
-                    label="選擇語音人聲"
+                    value="en_speaker_6",
+                    label="選擇語音人聲 (Bark TTS)"
                 )
                 generate_audio_btn = gr.Button("從演講稿生成語音", variant="secondary")
                 audio_output = gr.Audio(label="生成的語音", type="filepath")
@@ -340,4 +321,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     )
 
 if __name__ == "__main__":
+    print("正在預載入本地 LLM 模型，這可能需要幾分鐘時間...")
+    initialize_llm_model()
+    print("模型預載入完成，啟動 Gradio 介面。")
     demo.launch(share=True)

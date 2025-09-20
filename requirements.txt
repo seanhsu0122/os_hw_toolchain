@@ -1,4 +1,3 @@
-google-genai
 scipy>=1.13.0
 numpy>=1.26.4
 transformers
@@ -9,3 +8,6 @@ python-dotenv
 diffusers
 invisible-watermark
 tqdm
+bark
+soundfile
+bitsandbytes
