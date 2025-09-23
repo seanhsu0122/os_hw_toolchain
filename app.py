@@ -232,21 +232,41 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             with gr.Group():
                 gr.Markdown("### 2. 語音 (Audio)")
                 tts_voice = gr.Dropdown(
+                    tts_voice = gr.Dropdown(
                     choices=[
-                        ("English Speaker 1 (Male, Calm)", "en_speaker_1"),
-                        ("English Speaker 2 (Male, Raspy)", "en_speaker_2"),
-                        ("English Speaker 3 (Male, Smooth)", "en_speaker_3"),
-                        ("English Speaker 4 (Male, Raspy)", "en_speaker_4"),
-                        ("English Speaker 5 (Male, Calm)", "en_speaker_5"),
-                        ("English Speaker 6 (Male, Casual)", "en_speaker_6"),
-                        ("English Speaker 7 (Male, Smooth)", "en_speaker_7"),
-                        ("English Speaker 8 (Female, Calm)", "en_speaker_8"),
-                        ("English Speaker 9 (Female, Raspy)", "en_speaker_9"),
-                        ("Chinese Speaker", "zh_speaker_2"),
-                        ("Japanese Speaker", "ja_speaker_1"),
+                        ("Zephyr (Bright, Higher pitch)", "Zephyr"),
+                        ("Puck (Upbeat, Middle pitch)", "Puck"),
+                        ("Charon (Informative, Lower pitch)", "Charon"),
+                        ("Kore (Firm, Middle pitch)", "Kore"),
+                        ("Fenrir (Excitable, Lower middle pitch)", "Fenrir"),
+                        ("Leda (Youthful, Higher pitch)", "Leda"),
+                        ("Orus (Firm, Lower middle pitch)", "Orus"),
+                        ("Aoede (Breezy, Middle pitch)", "Aoede"),
+                        ("Callirrhoe (Easy-going, Middle pitch)", "Callirrhoe"),
+                        ("Autonoe (Bright, Middle pitch)", "Autonoe"),
+                        ("Enceladus (Breathy, Lower pitch)", "Enceladus"),
+                        ("Iapetus (Clear, Lower middle pitch)", "Iapetus"),
+                        ("Umbriel (Easy-going, Lower middle pitch)", "Umbriel"),
+                        ("Algieba (Smooth, Lower pitch)", "Algieba"),
+                        ("Despina (Smooth, Middle pitch)", "Despina"),
+                        ("Erinome (Clear, Middle pitch)", "Erinome"),
+                        ("Algenib (Gravelly, Lower pitch)", "Algenib"),
+                        ("Rasalgethi (Informative, Middle pitch)", "Rasalgethi"),
+                        ("Laomedeia (Upbeat, Higher pitch)", "Laomedeia"),
+                        ("Achernar (Soft, Higher pitch)", "Achernar"),
+                        ("Alnilam (Firm, Lower middle pitch)", "Alnilam"),
+                        ("Schedar (Even, Lower middle pitch)", "Schedar"),
+                        ("Gacrux (Mature, Middle pitch)", "Gacrux"),
+                        ("Pulcherrima (Forward, Middle pitch)", "Pulcherrima"),
+                        ("Achird (Friendly, Lower middle pitch)", "Achird"),
+                        ("Zubenelgenubi (Casual, Lower middle pitch)", "Zubenelgenubi"),
+                        ("Vindemiatrix (Gentle, Middle pitch)", "Vindemiatrix"),
+                        ("Sadachbia (Lively, Lower pitch)", "Sadachbia"),
+                        ("Sadaltager (Knowledgeable, Middle pitch)", "Sadaltager"),
+                        ("Sulafat (Warm, Middle pitch)", "Sulafat")
                     ],
-                    value="en_speaker_6",
-                    label="選擇語音人聲 (Bark TTS)"
+                    value="Zephyr",
+                    label="選擇語音人聲"
                 )
                 generate_audio_btn = gr.Button("從演講稿生成語音", variant="secondary")
                 audio_output = gr.Audio(label="生成的語音", type="filepath")
