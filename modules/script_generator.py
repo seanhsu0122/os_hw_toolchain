@@ -85,19 +85,20 @@ def generate_image_prompt(question: str, script_text: str) -> str:
     :return: A descriptive prompt for image generation.
     """
     prompt = f"""
-    Your task is to act as a concept artist. Your goal is to create a highly concise and impactful image prompt for an AI image generator (like Stable Diffusion). This image will serve as an explanatory background for a video.
+    You are an AI assistant that strictly follows instructions. Your task is to generate a concise image prompt.
+    Analyze the provided question and script to find the core concept. Create a symbolic, minimalist visual for it.
+    
+    **CRITICAL INSTRUCTIONS:**
+    1.  **OUTPUT TEXT ONLY:** Your entire response must be ONLY the prompt text itself.
+    2.  **NO PREFIXES:** Do NOT start with "Here is the prompt:", "Image Prompt:", or similar phrases.
+    3.  **NO EXTRA TEXT:** Do NOT include any explanations, notes, or apologies.
+    4.  **NO QUOTES:** Do NOT wrap the prompt in quotation marks.
+    5.  **BE CONCISE:** The prompt must be 5-15 words.
 
-    **Instructions:**
-    1.  **Synthesize the Core Concept:** Read the original question and the video script (the answer). Your main goal is to find the central idea that connects the question to the answer.
-    2.  **Look Beyond Metaphors:** The script might use analogies or metaphors to explain a concept. Do not illustrate the metaphor literally. Instead, identify the **underlying principle** the metaphor is trying to explain.
-    3.  **Create a Visual Concept:** Design a symbolic, minimalist visual that represents this underlying principle. The visual must be relevant to both the question's topic and the script's explanation.
-    4.  **Generate the Prompt:** Write a short, keyword-focused prompt in English that describes this visual concept.
+    **EXAMPLE OF PERFECT OUTPUT:**
+    A glowing brain with interconnected circuits
 
-    **Constraints:**
-    - The prompt must be concise (5-15 words), which is typically under 77 tokens.
-    - The prompt must describe an **illustration, infographic, or conceptual art**. Avoid realistic photos.
-    - The prompt must NOT contain any text, letters, or numbers.
-    - Your final output MUST be ONLY the prompt text itself. Do not include any introductory phrases like "Here is the prompt:" or any other explanations or labels.
+    **Now, generate the prompt for the following:**
 
     **Original Question:**
     {question}
