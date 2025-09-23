@@ -17,7 +17,7 @@
 
 ### **4. 語音生成模組（TTS）**
 
-* 將演講稿文字送入本地 TTS（Text-to-Speech）模型 (Bark)。
+* 將演講稿文字送入 TTS 服務 (Google Gemini API)。
 
 ### **5. 影片合成模組（FFmpeg）**
 

@@ -26,15 +26,22 @@ def generate_background_image(
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"正在使用 {device} 進行圖片生成...")
         
-        # 載入模型。第一次執行會需要下載模型檔案（約 7GB），可能需要一些時間。
+        # 載入模型。第一次執行會需要下載模型檔案。
         # 使用 float16 可以節省 VRAM，加快生成速度。
+        # 更換為較輕量的 SD 2.1 模型以節省 VRAM
         pipe = DiffusionPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-xl-base-1.0", 
+            "stabilityai/stable-diffusion-2-1", 
             torch_dtype=torch.float16, 
-            use_safetensors=True, 
-            variant="fp16"
+            use_safetensors=True
         )
-        pipe = pipe.to(device)
+        
+        # 啟用模型 CPU 卸載，大幅降低 VRAM 峰值使用量
+        # 這會稍微降低生成速度，但在 VRAM 有限的環境下至關重要
+        if device == "cuda":
+            pipe.enable_model_cpu_offload()
+        else:
+            pipe = pipe.to(device)
+
 
         # 為了讓圖片更美觀，可以在提示詞中加入一些風格描述
         full_prompt = f"{prompt}, cinematic, beautiful, high-res, detailed, professional photography"
