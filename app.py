@@ -232,7 +232,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             with gr.Group():
                 gr.Markdown("### 2. 語音 (Audio)")
                 tts_voice = gr.Dropdown(
-                    tts_voice = gr.Dropdown(
                     choices=[
                         ("Zephyr (Bright, Higher pitch)", "Zephyr"),
                         ("Puck (Upbeat, Middle pitch)", "Puck"),
