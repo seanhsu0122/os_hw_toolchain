@@ -68,6 +68,7 @@ def generate_script(question: str, language: str = "English") -> str:
     The script should be in {language}.
     The script should be between 30 seconds and 1 minute long.
     Use simple, easy-to-understand language and avoid technical jargon.
+    IMPORTANT: Do not repeat the question in your opening. Start directly with the answer in a conversational way.
     Your output MUST be only the script text itself, without any additional explanations, titles, or formatting like "Scenario Description:" or "Script:".
 
     Question:
@@ -93,10 +94,10 @@ def generate_image_prompt(question: str, script_text: str) -> str:
     4.  **Generate the Prompt:** Write a short, keyword-focused prompt in English that describes this visual concept.
 
     **Constraints:**
-    - The prompt must be concise (5-15 words).
+    - The prompt must be concise (5-15 words), which is typically under 77 tokens.
     - The prompt must describe an **illustration, infographic, or conceptual art**. Avoid realistic photos.
     - The prompt must NOT contain any text, letters, or numbers.
-    - Your final output MUST be ONLY the prompt text itself, with no extra explanations or labels like "Image Prompt:".
+    - Your final output MUST be ONLY the prompt text itself. Do not include any introductory phrases like "Here is the prompt:" or any other explanations or labels.
 
     **Original Question:**
     {question}
