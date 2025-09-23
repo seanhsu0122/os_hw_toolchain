@@ -1,5 +1,5 @@
 import torch
-from transformers import pipeline
+from transformers import pipeline, BitsAndBytesConfig
 import os
 
 LLM_PIPELINE = None
@@ -8,12 +8,23 @@ def _initialize_llm():
     """載入本地 Llama-8B 模型。"""
     global LLM_PIPELINE
     if LLM_PIPELINE is None:
-        print("首次載入 Llama-8B 模型，請稍候...")
+        print("首次載入 Llama-8B 模型 (4-bit 量化)，請稍候...")
+        
+        # 設定 4-bit 量化
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
+
         # 確保有足夠的 VRAM，或在 CPU 上運行（會非常慢）
         LLM_PIPELINE = pipeline(
             "text-generation",
             model="meta-llama/Meta-Llama-3-8B-Instruct",
-            model_kwargs={"torch_dtype": torch.bfloat16},
+            model_kwargs={
+                "torch_dtype": torch.bfloat16,
+                "quantization_config": quantization_config
+            },
             device_map="auto",
         )
         print("Llama-8B 模型載入完成。")
