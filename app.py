@@ -1,7 +1,7 @@
 import gradio as gr
 import os
 import re
-import time # 新增 time 模組
+import time
 from modules.script_generator import generate_script as sg_generate_script, generate_image_prompt, _initialize_llm as initialize_llm_model # 使用別名避免命名衝突
 from modules.tts_module import generate_tts_audio
 from modules.video_generator import generate_video as vg_generate_video # 使用別名避免命名衝突
@@ -16,14 +16,14 @@ def sanitize_filename(text: str) -> str:
     text = re.sub(r'\s+', '_', text) # 將空白替換為底線
     return text[:50].strip('_')
 
-# --- Backend Logic Functions ---
+# --- Backend Logic Functions (Originals, mostly unchanged) ---
 
 def create_script(question, script_language):
     """Generates a script from a question."""
     if not question or not question.strip():
         raise gr.Error("問題不能為空！")
     try:
-        print("[SCRIPT] 正在生成演講稿...")
+        print(f"[SCRIPT] 正在為 '{question[:30]}...' 生成演講稿...")
         script = sg_generate_script(question, language=script_language)
         print("[SCRIPT] 演講稿生成完畢。")
         return script
@@ -38,7 +38,6 @@ def create_audio(script, tts_voice):
     try:
         print("[AUDIO] 正在生成語音...")
         os.makedirs(TEMP_DIR, exist_ok=True)
-        # 建立唯一的檔名以避免在批次處理中被覆蓋
         timestamp = int(time.time())
         audio_filename = f"audio_{timestamp}.wav"
         audio_path = os.path.join(TEMP_DIR, audio_filename)
@@ -61,7 +60,6 @@ def create_background_image(question, script, video_width, video_height):
         print(f"[IMAGE] 生成的圖片提示詞: '{image_prompt}'")
 
         print("[IMAGE] 正在使用提示詞生成背景圖片...")
-        # 建立一個對檔案系統安全的檔名，使用時間戳以避免中文路徑
         timestamp = int(time.time())
         safe_filename = f"bg_{timestamp}.png"
         image_path = generate_background_image(
@@ -89,7 +87,6 @@ def create_video(audio_path, question, video_title, background_image, video_widt
         title_text = video_title if video_title and video_title.strip() else question
         bg_path = background_image if background_image and os.path.exists(background_image) else DEFAULT_BG_IMAGE
 
-        # Convert rgba() color string from Gradio to FFmpeg-compatible hex format
         ffmpeg_font_color = font_color
         if isinstance(font_color, str) and font_color.startswith('rgba'):
             rgba_match = re.match(r"rgba\(([\d\.]+),\s*([\d\.]+),\s*([\d\.]+),\s*([\d\.]+)\)", font_color)
@@ -116,227 +113,235 @@ def create_video(audio_path, question, video_title, background_image, video_widt
         print(f"\n❌ [VIDEO] 發生錯誤：{e}")
         raise gr.Error(f"合成影片時發生錯誤: {e}")
 
-# --- Pipeline Orchestrator ---
+# --- State Management and UI Functions ---
 
-def run_single_pipeline(question, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, video_title, font_size, font_color, output_filename):
-    """為單一問題執行完整的影片生成流程。"""
-    # 步驟 1: 生成演講稿
-    script = create_script(question, script_language)
-    
-    # 步驟 2: 生成語音
-    audio_path = create_audio(script, tts_voice)
-    
-    # 步驟 3: 生成背景圖片
-    final_bg_path = background_image_upload
-    image_prompt_for_ui = "未使用 AI 生成圖片"
-    if use_ai_image:
-        image_prompt_for_ui, final_bg_path = create_background_image(question, script, video_width, video_height)
-    
-    # 步驟 4: 合成影片
-    video_path = create_video(audio_path, question, video_title, final_bg_path, video_width, video_height, font_size, font_color, output_filename)
-    
-    return script, audio_path, final_bg_path, video_path, image_prompt_for_ui
-
-def run_batch_pipeline(questions_text, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, video_title, font_size, font_color, output_filename_prefix, progress=gr.Progress(track_tqdm=True)):
-    """為多個問題執行整個影片生成流程."""
-    
-    # 1. 從輸入文字中解析問題列表 (優化版，支援多行問題)
+def parse_and_load_questions(questions_text):
+    """從輸入文字中解析問題並初始化任務狀態."""
     question_blocks = re.split(r'\n\s*\n', questions_text.strip())
     questions = []
     for block in question_blocks:
-        if not block.strip():
-            continue
-        # 將區塊內的換行合併為空格，並移除前方的項目符號 (如 1., *, -)
+        if not block.strip(): continue
         question = ' '.join(line.strip() for line in block.split('\n'))
         question = re.sub(r"^\s*(\d+\.|\*|-)\s*", "", question).strip()
-        if question:
-            questions.append(question)
+        if question: questions.append(question)
     
     if not questions:
         raise gr.Error("請輸入至少一個問題！")
 
-    video_paths = []
-    total_questions = len(questions)
+    tasks_state = {q: {
+        'script': '', 'audio_path': None, 'image_prompt': '',
+        'bg_image_path': None, 'video_path': None
+    } for q in questions}
     
-    # 用於儲存最後一個問題的結果以更新 UI 預覽
-    last_script, last_audio, last_bg, last_video, last_prompt = "", None, None, None, ""
+    first_question = questions[0]
+    return tasks_state, gr.update(choices=questions, value=first_question), *update_ui_for_selected_question(first_question, tasks_state)
+
+def update_ui_for_selected_question(selected_question, tasks_state):
+    """當使用者從下拉選單選擇不同問題時，更新 UI 介面."""
+    if not selected_question or selected_question not in tasks_state:
+        return "", None, "", None, None
+    
+    task_data = tasks_state.get(selected_question, {})
+    return (
+        task_data.get('script', ''),
+        task_data.get('audio_path'),
+        task_data.get('image_prompt', ''),
+        task_data.get('bg_image_path'),
+        task_data.get('video_path')
+    )
+
+# --- New Wrapper Functions for Single-Step Execution ---
+
+def run_single_script_step(selected_question, tasks_state, script_language):
+    """僅為當前選擇的任務生成演講稿。"""
+    if not selected_question: raise gr.Error("請先選擇一個任務！")
+    script = create_script(selected_question, script_language)
+    tasks_state[selected_question]['script'] = script
+    return tasks_state, script
+
+def run_single_audio_step(selected_question, tasks_state, script_from_ui, tts_voice):
+    """僅為當前選擇的任務生成語音。"""
+    if not selected_question: raise gr.Error("請先選擇一個任務！")
+    # 使用 UI 上可能已編輯過的腳本
+    audio_path = create_audio(script_from_ui, tts_voice)
+    tasks_state[selected_question]['audio_path'] = audio_path
+    tasks_state[selected_question]['script'] = script_from_ui # 同步更新狀態
+    return tasks_state, audio_path
+
+def run_single_image_step(selected_question, tasks_state, script_from_ui, video_width, video_height):
+    """僅為當前選擇的任務生成 AI 背景圖。"""
+    if not selected_question: raise gr.Error("請先選擇一個任務！")
+    image_prompt, image_path = create_background_image(selected_question, script_from_ui, video_width, video_height)
+    tasks_state[selected_question]['image_prompt'] = image_prompt
+    tasks_state[selected_question]['bg_image_path'] = image_path
+    return tasks_state, image_prompt, image_path
+
+def run_single_video_step(selected_question, tasks_state, background_image_upload, video_width, video_height, font_size, font_color, output_filename_prefix):
+    """僅為當前選擇的任務合成影片。"""
+    if not selected_question: raise gr.Error("請先選擇一個任務！")
+    
+    task_data = tasks_state[selected_question]
+    audio_path = task_data.get('audio_path')
+    # 優先使用任務自己的背景圖，若無則使用通用上傳的背景圖
+    bg_path = task_data.get('bg_image_path') or background_image_upload
+
+    if not audio_path: raise gr.Error("請先為此任務生成語音！")
+
+    sanitized_q = sanitize_filename(selected_question)
+    output_filename = f"{output_filename_prefix}_{sanitized_q}_single.mp4"
+    
+    video_path = create_video(audio_path, selected_question, selected_question, bg_path, video_width, video_height, font_size, font_color, output_filename)
+    tasks_state[selected_question]['video_path'] = video_path
+    return tasks_state, video_path
+
+# --- Full Pipeline Functions ---
+
+def run_single_pipeline_for_state(question, task_data, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, font_size, font_color, output_filename_prefix):
+    """為單一問題執行完整的影片生成流程並更新其狀態 (供批次處理呼叫)。"""
+    script = create_script(question, script_language)
+    task_data['script'] = script
+    audio_path = create_audio(script, tts_voice)
+    task_data['audio_path'] = audio_path
+    
+    final_bg_path = background_image_upload
+    if use_ai_image:
+        image_prompt, final_bg_path = create_background_image(question, script, video_width, video_height)
+        task_data['image_prompt'] = image_prompt
+        task_data['bg_image_path'] = final_bg_path
+    else:
+        task_data['image_prompt'] = "未使用 AI 生成圖片"
+        task_data['bg_image_path'] = final_bg_path
+    
+    sanitized_q = sanitize_filename(question)
+    output_filename = f"{output_filename_prefix}_{sanitized_q}.mp4"
+    video_path = create_video(audio_path, question, question, final_bg_path, video_width, video_height, font_size, font_color, output_filename)
+    task_data['video_path'] = video_path
+    return task_data
+
+def process_all_tasks(tasks_state, script_language, tts_voice, video_width, video_height, use_ai_image, background_image_upload, font_size, font_color, output_filename_prefix, progress=gr.Progress(track_tqdm=True)):
+    """為狀態中的所有任務執行整個影片生成流程."""
+    if not tasks_state: raise gr.Error("沒有已載入的任務！請先輸入問題並點擊 '解析並載入問題'。")
+    
+    questions = list(tasks_state.keys())
+    total_questions = len(questions)
+    all_video_paths = []
 
     for i, question in enumerate(questions):
         progress(i / total_questions, desc=f"[{i+1}/{total_questions}] 處理中: {question[:30]}...")
-        
         try:
-            # --- 為每個問題獨立執行一次完整的流程 ---
-            sanitized_q = sanitize_filename(question)
-            unique_output_filename = f"{output_filename_prefix}_{sanitized_q}.mp4"
-            current_video_title = question # 在批次模式下，標題就是問題本身
-
-            script, audio_path, final_bg_path, video_path, image_prompt_for_ui = run_single_pipeline(
-                question=question,
-                script_language=script_language,
-                tts_voice=tts_voice,
-                video_width=video_width,
-                video_height=video_height,
-                use_ai_image=use_ai_image,
-                background_image_upload=background_image_upload,
-                video_title=current_video_title,
-                font_size=font_size,
-                font_color=font_color,
-                output_filename=unique_output_filename
+            updated_task_data = run_single_pipeline_for_state(
+                question, tasks_state[question], script_language, tts_voice, video_width, video_height,
+                use_ai_image, background_image_upload, font_size, font_color, output_filename_prefix
             )
-            
-            video_paths.append(video_path)
-
-            # 更新最後一次的結果以供 UI 預覽
-            last_script, last_audio, last_bg, last_video, last_prompt = script, audio_path, final_bg_path, video_path, image_prompt_for_ui
-
+            tasks_state[question] = updated_task_data
+            if updated_task_data.get('video_path'):
+                all_video_paths.append(updated_task_data['video_path'])
         except Exception as e:
             gr.Warning(f"處理問題 '{question}' 時發生錯誤: {e}")
-            # 發生錯誤時，停止後續處理，但返回已成功生成的影片
-            break
-
+            continue
+            
     progress(1.0, desc="全部處理完畢！")
-    
-    # 返回所有生成的影片路徑，以及最後一個的詳細資訊用於預覽
-    return last_script, last_audio, last_bg, last_video, last_prompt, video_paths
 
+    last_question = questions[-1]
+    last_task_ui_updates = update_ui_for_selected_question(last_question, tasks_state)
+    return tasks_state, all_video_paths, gr.update(value=last_question), *last_task_ui_updates
 
 # --- Gradio UI ---
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# 🔹 製作作業系統作業的系統作業程序")
+    tasks_state = gr.State({})
+
+    gr.Markdown("# 🔹 製作作業系統作業的系統作業程序 (多任務版)")
     
     with gr.Row():
         with gr.Column(scale=2):
-            # --- Section 1: Script ---
+            with gr.Group():
+                gr.Markdown("### 0. 任務管理")
+                question_input = gr.Textbox(label="請輸入所有問題 (以空白行分隔)", lines=10, placeholder="例如：\n1. CPU 和 GPU 的差別是什麼？\n\n2. 什麼是 RAM？")
+                parse_questions_btn = gr.Button("解析並載入問題", variant="secondary")
+                question_selector = gr.Dropdown(label="選擇要檢視/編輯的任務", interactive=True)
+
             with gr.Group():
                 gr.Markdown("### 1. 演講稿 (Script)")
-                question = gr.Textbox(
-                    label="請輸入您的問題 (每行一個)", 
-                    lines=10, 
-                    placeholder="""例如：
-1. CPU 和 GPU 的差別是什麼？
-
-2. 什麼是 RAM？
-
-什麼是量子糾纏？"""
-                )
-                script_language = gr.Dropdown(
-                    choices=["Traditional Chinese", "English", "Japanese"], 
-                    value="Traditional Chinese",
-                    label="演講稿語言", 
-                    allow_custom_value=True
-                )
-                generate_script_btn = gr.Button("生成演講稿", variant="secondary")
+                script_language = gr.Dropdown(choices=["Traditional Chinese", "English", "Japanese"], value="Traditional Chinese", label="演講稿語言")
                 script_output = gr.Textbox(label="生成的演講稿 (可編輯)", lines=8, interactive=True)
+                generate_script_btn = gr.Button("僅生成此任務的演講稿", variant="secondary")
 
-            # --- Section 2: Audio ---
             with gr.Group():
                 gr.Markdown("### 2. 語音 (Audio)")
-                tts_voice = gr.Dropdown(
-                    choices=[
-                        ("Zephyr (Bright, Higher pitch)", "Zephyr"),
-                        ("Puck (Upbeat, Middle pitch)", "Puck"),
-                        ("Charon (Informative, Lower pitch)", "Charon"),
-                        ("Kore (Firm, Middle pitch)", "Kore"),
-                        ("Fenrir (Excitable, Lower middle pitch)", "Fenrir"),
-                        ("Leda (Youthful, Higher pitch)", "Leda"),
-                        ("Orus (Firm, Lower middle pitch)", "Orus"),
-                        ("Aoede (Breezy, Middle pitch)", "Aoede"),
-                        ("Callirrhoe (Easy-going, Middle pitch)", "Callirrhoe"),
-                        ("Autonoe (Bright, Middle pitch)", "Autonoe"),
-                        ("Enceladus (Breathy, Lower pitch)", "Enceladus"),
-                        ("Iapetus (Clear, Lower middle pitch)", "Iapetus"),
-                        ("Umbriel (Easy-going, Lower middle pitch)", "Umbriel"),
-                        ("Algieba (Smooth, Lower pitch)", "Algieba"),
-                        ("Despina (Smooth, Middle pitch)", "Despina"),
-                        ("Erinome (Clear, Middle pitch)", "Erinome"),
-                        ("Algenib (Gravelly, Lower pitch)", "Algenib"),
-                        ("Rasalgethi (Informative, Middle pitch)", "Rasalgethi"),
-                        ("Laomedeia (Upbeat, Higher pitch)", "Laomedeia"),
-                        ("Achernar (Soft, Higher pitch)", "Achernar"),
-                        ("Alnilam (Firm, Lower middle pitch)", "Alnilam"),
-                        ("Schedar (Even, Lower middle pitch)", "Schedar"),
-                        ("Gacrux (Mature, Middle pitch)", "Gacrux"),
-                        ("Pulcherrima (Forward, Middle pitch)", "Pulcherrima"),
-                        ("Achird (Friendly, Lower middle pitch)", "Achird"),
-                        ("Zubenelgenubi (Casual, Lower middle pitch)", "Zubenelgenubi"),
-                        ("Vindemiatrix (Gentle, Middle pitch)", "Vindemiatrix"),
-                        ("Sadachbia (Lively, Lower pitch)", "Sadachbia"),
-                        ("Sadaltager (Knowledgeable, Middle pitch)", "Sadaltager"),
-                        ("Sulafat (Warm, Middle pitch)", "Sulafat")
-                    ],
-                    value="Zephyr",
-                    label="選擇語音人聲"
-                )
-                generate_audio_btn = gr.Button("從演講稿生成語音", variant="secondary")
+                tts_voice = gr.Dropdown(choices=[("Zephyr", "Zephyr"), ("Puck", "Puck"), ("Charon", "Charon")], value="Zephyr", label="選擇語音人聲")
                 audio_output = gr.Audio(label="生成的語音", type="filepath")
+                generate_audio_btn = gr.Button("僅從上方演講稿生成語音", variant="secondary")
 
-            # --- Section 3: Video ---
             with gr.Group():
                 gr.Markdown("### 3. 影片 (Video)")
-                with gr.Accordion("影片設定", open=True):
-                    video_title = gr.Textbox(label="影片標題文字 (批次處理時會被忽略)", placeholder="留空則使用您的問題")
-                    
+                with gr.Accordion("通用與單任務設定", open=True):
                     gr.Markdown("#### 背景圖片設定")
-                    use_ai_image_for_all = gr.Checkbox(label="[一鍵生成時] 使用 AI 生成新背景", value=True)
-                    
-                    background_image_input = gr.Image(type="filepath", label="上傳背景 / AI 生成結果預覽")
-                    generate_image_btn = gr.Button("單獨生成 AI 背景圖 (會覆蓋上方圖片)", variant="secondary")
+                    use_ai_image_for_all = gr.Checkbox(label="[執行所有任務時] 為每個任務生成新的 AI 背景", value=True)
+                    background_image_upload = gr.Image(type="filepath", label="上傳通用背景 / AI 生成結果預覽")
+                    generate_image_btn = gr.Button("僅為此任務生成 AI 背景 (會覆蓋上方)", variant="secondary")
                     image_prompt_output = gr.Textbox(label="AI 生成的圖片提示詞 (Prompt)", interactive=False)
                     
                     gr.Markdown("---")
-                    output_filename = gr.Textbox(value="output", label="輸出檔名前綴")
+                    gr.Markdown("#### 影片與字體設定")
+                    output_filename_prefix = gr.Textbox(value="output", label="輸出檔名前綴")
                     with gr.Row():
                         video_width = gr.Slider(minimum=640, maximum=1920, value=VIDEO_WIDTH, step=2, label="影片寬度")
                         video_height = gr.Slider(minimum=360, maximum=1080, value=VIDEO_HEIGHT, step=2, label="影片高度")
                     with gr.Row():
                         font_size = gr.Slider(minimum=20, maximum=100, value=40, step=1, label="字體大小")
                         font_color = gr.ColorPicker(value="#ffffff", label="字體顏色")
-                generate_video_btn = gr.Button("合成影片", variant="secondary")
+                generate_video_btn = gr.Button("僅合成此任務的影片", variant="secondary")
 
         with gr.Column(scale=1):
             gr.Markdown("### 最終結果")
-            output_video = gr.Video(label="生成結果預覽 (最後一部)")
+            output_video_preview = gr.Video(label="結果預覽 (當前選中或最後處理的任務)")
             output_files = gr.File(label="所有生成的影片檔案", file_count="multiple")
-            run_all_btn = gr.Button("🚀 一鍵執行製作作業系統作業的系統作業程序", variant="primary")
+            process_all_btn = gr.Button("🚀 同時執行所有任務", variant="primary")
 
     # --- Event Listeners ---
     
-    # Individual step buttons
+    # 0. Load and parse questions
+    parse_questions_btn.click(
+        fn=parse_and_load_questions, inputs=[question_input],
+        outputs=[tasks_state, question_selector, script_output, audio_output, image_prompt_output, background_image_upload, output_video_preview]
+    )
+    
+    # Update UI when dropdown changes
+    question_selector.change(
+        fn=update_ui_for_selected_question, inputs=[question_selector, tasks_state],
+        outputs=[script_output, audio_output, image_prompt_output, background_image_upload, output_video_preview]
+    )
+    
+    # 1. Single Step: Generate Script
     generate_script_btn.click(
-        fn=create_script,
-        inputs=[question, script_language],
-        outputs=[script_output]
+        fn=run_single_script_step, inputs=[question_selector, tasks_state, script_language],
+        outputs=[tasks_state, script_output]
     )
     
+    # 2. Single Step: Generate Audio
     generate_audio_btn.click(
-        fn=create_audio,
-        inputs=[script_output, tts_voice],
-        outputs=[audio_output]
+        fn=run_single_audio_step, inputs=[question_selector, tasks_state, script_output, tts_voice],
+        outputs=[tasks_state, audio_output]
     )
-    
+
+    # 3. Single Step: Generate Image
     generate_image_btn.click(
-        fn=create_background_image,
-        inputs=[question, script_output, video_width, video_height],
-        outputs=[image_prompt_output, background_image_input]
+        fn=run_single_image_step, inputs=[question_selector, tasks_state, script_output, video_width, video_height],
+        outputs=[tasks_state, image_prompt_output, background_image_upload]
     )
-    
+
+    # 4. Single Step: Generate Video
     generate_video_btn.click(
-        fn=create_video,
-        inputs=[
-            audio_output, question, video_title, background_image_input, 
-            video_width, video_height, font_size, font_color, output_filename
-        ],
-        outputs=[output_video]
+        fn=run_single_video_step, 
+        inputs=[question_selector, tasks_state, background_image_upload, video_width, video_height, font_size, font_color, output_filename_prefix],
+        outputs=[tasks_state, output_video_preview]
     )
     
-    # "Run All" button
-    run_all_btn.click(
-        fn=run_batch_pipeline,
-        inputs=[
-            question, script_language, tts_voice, video_width, video_height, 
-            use_ai_image_for_all, background_image_input, video_title, font_size, font_color, output_filename
-        ],
-        outputs=[script_output, audio_output, background_image_input, output_video, image_prompt_output, output_files]
+    # Run All Pipeline
+    process_all_btn.click(
+        fn=process_all_tasks,
+        inputs=[tasks_state, script_language, tts_voice, video_width, video_height, use_ai_image_for_all, background_image_upload, font_size, font_color, output_filename_prefix],
+        outputs=[tasks_state, output_files, question_selector, script_output, audio_output, image_prompt_output, background_image_upload, output_video_preview]
     )
 
 if __name__ == "__main__":
