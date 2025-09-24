@@ -31,7 +31,7 @@ def generate_background_image(
         # 更換為較輕量的 SD 2.1 模型以節省 VRAM
         pipe = DiffusionPipeline.from_pretrained(
             "stabilityai/stable-diffusion-xl-base-1.0", 
-            # torch_dtype=torch.float16,
+            torch_dtype=torch.float16,
             variant="fp16",
             use_safetensors=True
         )
