@@ -62,68 +62,25 @@ def generate_background_image(
     try:
         # 為了讓圖片更美觀，可以在提示詞中加入一些風格描述
         full_prompt = f"{prompt}, cinematic, beautiful, high-res, detailed, professional photography"
-        negative_prompt = "out of frame, lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, bad anatomy, bad proportions, extra limbs, cloned faceimport torch
-from diffusers import DiffusionPipeline
-import os
-from config import IMAGE_DIR, VIDEO_WIDTH, VIDEO_HEIGHT
+        negative_prompt = "out of frame, lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, bad anatomy, bad proportions, extra limbs, cloned face"
 
-IMAGE_PIPE = None
+        # 生成圖片
+        image = IMAGE_PIPE(
+            full_prompt, 
+            negative_prompt=negative_prompt,
+            width=width, 
+            height=height,
+            num_inference_steps=30,
+            guidance_scale=7.5
+        ).images[0]
 
-def initialize_image_model():
-    """
-    Initializes and loads the Stable Diffusion pipeline.
-    This function only loads the model during the first call.
-    """
-    global IMAGE_PIPE
-    if IMAGE_PIPE is None:
-        try:
-            # Check for available GPU, otherwise use CPU. It's strongly recommended to run in an environment with a GPU.
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            print(f"Loading Stable Diffusion model for the first time, using {device}...")
-            
-            # Load the model. The model files will be downloaded on the first run.
-            pipe = DiffusionPipeline.from_pretrained(
-                "stabilityai/stable-diffusion-xl-base-1.0", 
-                torch_dtype=torch.float16,
-                variant="fp16",
-                use_safetensors=True
-            )
-            
-            # Enable CPU offloading to significantly reduce peak VRAM usage
-            if device == "cuda":
-                pipe.enable_model_cpu_offload()
-            else:
-                pipe = pipe.to(device)
-            
-            IMAGE_PIPE = pipe
-            print("Stable Diffusion model loaded successfully.")
+        # 儲存圖片
+        output_path = os.path.join(IMAGE_DIR, output_name)
+        image.save(output_path)
+        print(f"背景圖片已生成： {output_path}")
 
-        except Exception as e:
-            print(f"Error loading Stable Diffusion model: {e}")
-            raise
+        return output_path
 
-def generate_background_image(
-    prompt: str, 
-    output_name: str = "generated_bg.png",
-    width: int = VIDEO_WIDTH,
-    height: int = VIDEO_HEIGHT
-):
-    """
-    Generates a background image using the loaded Stable Diffusion pipeline.
-
-    Args:
-        prompt (str): The text prompt used to generate the image.
-        output_name (str, optional): The output image file name. Defaults to "generated_bg.png".
-        width (int, optional): The image width. Defaults to VIDEO_WIDTH from config.
-        height (int, optional): The image height. Defaults to VIDEO_HEIGHT from config.
-
-    Returns:
-        str: The full path of the generated image.
-    """
-    # Ensure the model is initialized
-    initialize_image_model()
-    
-    try:
-        # To make the image more aesthetically pleasing, we can add some style descriptions to the prompt
-        full_prompt = f"{prompt}, cinematic, beautiful, high-res, detailed, professional photography"
-        negative_prompt = "out of frame, lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated
+    except Exception as e:
+        print(f"生成背景圖片時發生錯誤： {e}")
+        raise
