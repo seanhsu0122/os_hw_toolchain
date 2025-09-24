@@ -1,5 +1,61 @@
-from google import genai
+import torch
+from transformers import pipeline, BitsAndBytesConfig
 import os
+
+LLM_PIPELINE = None
+
+def _initialize_llm():
+    """載入本地 Llama-8B 模型。"""
+    global LLM_PIPELINE
+    if LLM_PIPELINE is None:
+        print("首次載入 Llama-8B 模型 (4-bit 量化)，請稍候...")
+        
+        # 設定 4-bit 量化
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
+
+        # 確保有足夠的 VRAM，或在 CPU 上運行（會非常慢）
+        LLM_PIPELINE = pipeline(
+            "text-generation",
+            model="meta-llama/Meta-Llama-3-8B-Instruct",
+            model_kwargs={
+                "torch_dtype": torch.bfloat16,
+                "quantization_config": quantization_config
+            },
+            device_map="auto",
+        )
+        print("Llama-8B 模型載入完成。")
+
+def _query_llama(prompt_text: str) -> str:
+    """使用本地 Llama 模型生成回應。"""
+    if LLM_PIPELINE is None:
+        _initialize_llm()
+
+    messages = [
+        {"role": "user", "content": prompt_text},
+    ]
+    
+    outputs = LLM_PIPELINE(
+        messages,
+        max_new_tokens=1024, # 增加 token 數量以容納腳本
+        do_sample=True,
+        temperature=0.7,
+        top_p=0.9,
+    )
+    # 從 pipeline 的輸出中提取助理的回應
+    response = outputs[0]["generated_text"]
+
+    # 嘗試釋放 VRAM 給下一個模型使用
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        
+    if isinstance(response, list):
+        return response[-1].get('content', '')
+    return ""
+
 
 def generate_script(question: str, language: str = "English") -> str:
     """
@@ -10,10 +66,6 @@ def generate_script(question: str, language: str = "English") -> str:
     :param language: The language for the output script
     :return: The generated conversational script
     """
-    # The client gets the API key from the environment variable `GEMINI_API_KEY`.
-    client = genai.Client()
-
-    # Prompt to generate a script directly from a question.
     prompt = f"""
     Your task is to generate a conversational script for a video presentation based on the following question.
     First, formulate a clear and concise answer to the question.
@@ -21,17 +73,13 @@ def generate_script(question: str, language: str = "English") -> str:
     The script should be in {language}.
     The script should be between 30 seconds and 1 minute long.
     Use simple, easy-to-understand language and avoid technical jargon.
+    IMPORTANT: Do not repeat the question in your opening. Start directly with the answer in a conversational way.
     Your output MUST be only the script text itself, without any additional explanations, titles, or formatting like "Scenario Description:" or "Script:".
 
     Question:
     {question}
     """
-    
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-    return response.text.strip()
+    return _query_llama(prompt)
 
 def generate_image_prompt(question: str, script_text: str) -> str:
     """
@@ -41,23 +89,22 @@ def generate_image_prompt(question: str, script_text: str) -> str:
     :param script_text: The video script (the answer).
     :return: A descriptive prompt for image generation.
     """
-    # The client gets the API key from the environment variable `GEMINI_API_KEY`.
-    client = genai.Client()
-
     prompt = f"""
-    Your task is to act as a concept artist. Your goal is to create a highly concise and impactful image prompt for an AI image generator (like Stable Diffusion). This image will serve as an explanatory background for a video.
+    You are an AI assistant that strictly follows instructions. Your task is to generate a concise image prompt.
+    Analyze the provided question and script to identify key concepts. Create an image prompt that includes concrete, real-world objects representing these concepts. The image should be visually interesting and relevant to the topic.
+    
+    **CRITICAL INSTRUCTIONS:**
+    1.  **INCLUDE CONCRETE OBJECTS:** The prompt MUST describe one or more tangible, real-world objects. Avoid purely abstract concepts.
+    2.  **OUTPUT TEXT ONLY:** Your entire response must be ONLY the prompt text itself.
+    3.  **NO PREFIXES:** Do NOT start with "Here is the prompt:", "Image Prompt:", or similar phrases.
+    4.  **NO EXTRA TEXT:** Do NOT include any explanations, notes, or apologies.
+    5.  **NO QUOTES:** Do NOT wrap the prompt in quotation marks.
+    6.  **BE CONCISE:** The prompt must be 5-15 words.
 
-    **Instructions:**
-    1.  **Synthesize the Core Concept:** Read the original question and the video script (the answer). Your main goal is to find the central idea that connects the question to the answer.
-    2.  **Look Beyond Metaphors:** The script might use analogies or metaphors to explain a concept. Do not illustrate the metaphor literally. Instead, identify the **underlying principle** the metaphor is trying to explain.
-    3.  **Create a Visual Concept:** Design a symbolic, minimalist visual that represents this underlying principle. The visual must be relevant to both the question's topic and the script's explanation.
-    4.  **Generate the Prompt:** Write a short, keyword-focused prompt in English that describes this visual concept.
+    **EXAMPLE OF PERFECT OUTPUT for "What is a quantum computer?":**
+    A futuristic computer with glowing qubits and intricate wiring
 
-    **Constraints:**
-    - The prompt must be concise (5-15 words).
-    - The prompt must describe an **illustration, infographic, or conceptual art**. Avoid realistic photos.
-    - The prompt must NOT contain any text, letters, or numbers.
-    - Your final output MUST be ONLY the prompt text itself, with no extra explanations or labels like "Image Prompt:".
+    **Now, generate the prompt for the following:**
 
     **Original Question:**
     {question}
@@ -65,37 +112,28 @@ def generate_image_prompt(question: str, script_text: str) -> str:
     **Video Script (Answer):**
     {script_text}
     """
-    
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-    return response.text.strip()
+    return _query_llama(prompt)
 
 
 if __name__ == "__main__":
-    # Ensure your GEMINI_API_KEY is set as an environment variable before running.
-    if "GEMINI_API_KEY" not in os.environ:
-        print("Please set the GEMINI_API_KEY environment variable.")
-    else:
-        # Test script generator
-        print("--- Generating Script ---")
-        question = "What is a quantum computer?\nAnd how is it different from a classical computer?"
-        
-        try:
-            script = generate_script(question, language="English")
-            print(f"Original question: {question}")
-            print("-" * 20)
-            print("Generated Script:")
-            print(script)
+    # Test script generator
+    print("--- Generating Script ---")
+    question = "What is a quantum computer?\nAnd how is it different from a classical computer?"
+    
+    try:
+        script = generate_script(question, language="English")
+        print(f"Original question: {question}")
+        print("-" * 20)
+        print("Generated Script:")
+        print(script)
 
-            print("\n--- Generating Image Prompt ---")
-            image_prompt = generate_image_prompt(question, script)
-            print(f"From Question: {question}")
-            print(f"From Script: {script[:100]}...")
-            print("-" * 20)
-            print("Generated Image Prompt:")
-            print(image_prompt)
+        print("\n--- Generating Image Prompt ---")
+        image_prompt = generate_image_prompt(question, script)
+        print(f"From Question: {question}")
+        print(f"From Script: {script[:100]}...")
+        print("-" * 20)
+        print("Generated Image Prompt:")
+        print(image_prompt)
 
-        except Exception as e:
-            print(f"An error occurred: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")

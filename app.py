@@ -2,10 +2,10 @@ import gradio as gr
 import os
 import re
 import time # 新增 time 模組
-from modules.script_generator import generate_script as sg_generate_script, generate_image_prompt # 使用別名避免命名衝突
+from modules.script_generator import generate_script as sg_generate_script, generate_image_prompt, _initialize_llm as initialize_llm_model # 使用別名避免命名衝突
 from modules.tts_module import generate_tts_audio
 from modules.video_generator import generate_video as vg_generate_video # 使用別名避免命名衝突
-from modules.image_generator import generate_background_image
+from modules.image_generator import generate_background_image, initialize_image_model
 from config import TEMP_DIR, DEFAULT_BG_IMAGE, VIDEO_WIDTH, VIDEO_HEIGHT
 
 # --- Helper Functions ---
@@ -340,4 +340,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     )
 
 if __name__ == "__main__":
+    print("正在預載入本地 LLM 模型，這可能需要幾分鐘時間...")
+    initialize_llm_model()
+    print("正在預載入圖片生成模型 (Stable Diffusion)，這可能需要幾分鐘時間...")
+    initialize_image_model()
+    print("所有模型預載入完成，啟動 Gradio 介面。")
     demo.launch(share=True)
