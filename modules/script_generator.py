@@ -47,6 +47,11 @@ def _query_llama(prompt_text: str) -> str:
     )
     # 從 pipeline 的輸出中提取助理的回應
     response = outputs[0]["generated_text"]
+
+    # 嘗試釋放 VRAM 給下一個模型使用
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        
     if isinstance(response, list):
         return response[-1].get('content', '')
     return ""
