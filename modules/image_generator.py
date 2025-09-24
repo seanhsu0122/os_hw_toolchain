@@ -75,6 +75,7 @@ def generate_background_image(
         ).images[0]
 
         # 儲存圖片
+        os.makedirs(IMAGE_DIR, exist_ok=True)
         output_path = os.path.join(IMAGE_DIR, output_name)
         image.save(output_path)
         print(f"背景圖片已生成： {output_path}")
