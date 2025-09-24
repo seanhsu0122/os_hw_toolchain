@@ -91,17 +91,18 @@ def generate_image_prompt(question: str, script_text: str) -> str:
     """
     prompt = f"""
     You are an AI assistant that strictly follows instructions. Your task is to generate a concise image prompt.
-    Analyze the provided question and script to find the core concept. Create a symbolic, minimalist visual for it.
+    Analyze the provided question and script to identify key concepts. Create an image prompt that includes concrete, real-world objects representing these concepts. The image should be visually interesting and relevant to the topic.
     
     **CRITICAL INSTRUCTIONS:**
-    1.  **OUTPUT TEXT ONLY:** Your entire response must be ONLY the prompt text itself.
-    2.  **NO PREFIXES:** Do NOT start with "Here is the prompt:", "Image Prompt:", or similar phrases.
-    3.  **NO EXTRA TEXT:** Do NOT include any explanations, notes, or apologies.
-    4.  **NO QUOTES:** Do NOT wrap the prompt in quotation marks.
-    5.  **BE CONCISE:** The prompt must be 5-15 words.
+    1.  **INCLUDE CONCRETE OBJECTS:** The prompt MUST describe one or more tangible, real-world objects. Avoid purely abstract concepts.
+    2.  **OUTPUT TEXT ONLY:** Your entire response must be ONLY the prompt text itself.
+    3.  **NO PREFIXES:** Do NOT start with "Here is the prompt:", "Image Prompt:", or similar phrases.
+    4.  **NO EXTRA TEXT:** Do NOT include any explanations, notes, or apologies.
+    5.  **NO QUOTES:** Do NOT wrap the prompt in quotation marks.
+    6.  **BE CONCISE:** The prompt must be 5-15 words.
 
-    **EXAMPLE OF PERFECT OUTPUT:**
-    A glowing brain with interconnected circuits
+    **EXAMPLE OF PERFECT OUTPUT for "What is a quantum computer?":**
+    A futuristic computer with glowing qubits and intricate wiring
 
     **Now, generate the prompt for the following:**
 
