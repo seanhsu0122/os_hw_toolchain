@@ -60,23 +60,26 @@ def _query_llama(prompt_text: str) -> str:
 def generate_script(question: str, language: str = "English") -> str:
     """
     Generate a conversational script for a video presentation directly from a question.
-    The script will be between approximately 30 seconds and 1 minute long.
+    The script will be approximately one minute long.
 
     :param question: The user's original input question
     :param language: The language for the output script
     :return: The generated conversational script
     """
     prompt = f"""
-    Your task is to generate a conversational script for a video presentation based on the following question.
-    First, formulate a clear and concise answer to the question.
-    Then, based on your answer, create the script.
+    Your task is to act as a student answering a teacher's question. Generate a script for this answer.
+    The script should be a clear, concise, and direct answer to the question provided.
+    The tone should be respectful and knowledgeable, like a good student explaining a concept.
     The script should be in {language}.
-    The script should be between 30 seconds and 1 minute long.
-    Use simple, easy-to-understand language and avoid technical jargon.
-    IMPORTANT: Do not repeat the question in your opening. Start directly with the answer in a conversational way.
-    Your output MUST be only the script text itself, without any additional explanations, titles, or formatting like "Scenario Description:" or "Script:".
+    The total speaking time for the script should be approximately one minute.
 
-    Question:
+    **CRITICAL INSTRUCTIONS:**
+    1.  **START DIRECTLY:** Begin the script immediately with the answer. Do NOT repeat the question or use introductory phrases like "The answer to the question is...".
+    2.  **CONCISE AND FOCUSED:** Stick to the core of the answer. Avoid unnecessary details or tangents.
+    3.  **NO CLOSING REMARKS:** End the script when the answer is complete. Do NOT add summaries, concluding phrases like "And that's how it works," or ask questions like "Does that make sense?".
+    4.  **PLAIN TEXT ONLY:** Your output MUST be only the script text itself. Do not include any titles, labels like "Script:", or other formatting.
+
+    Question from the teacher:
     {question}
     """
     return _query_llama(prompt)
