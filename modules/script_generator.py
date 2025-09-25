@@ -42,7 +42,7 @@ def _query_llama(prompt_text: str) -> str:
         messages,
         max_new_tokens=1024, # 增加 token 數量以容納腳本
         do_sample=True,
-        temperature=0.7,
+        temperature=0.6, # 降低 temperature 以減少亂碼和語言混淆
         top_p=0.9,
         repetition_penalty=1.15, # 加入重複懲罰以減少重複文字
         return_full_text=False,  # 僅回傳 AI 生成的部分
@@ -79,7 +79,8 @@ def generate_script(question: str, language: str = "English") -> str:
     2.  **CONCISE AND FOCUSED:** Stick to the core of the answer. Avoid unnecessary details or tangents.
     3.  **NO CLOSING REMARKS:** End the script when the answer is complete. Do NOT add summaries, concluding phrases like "And that's how it works," or ask questions like "Does that make sense?".
     4.  **PLAIN TEXT ONLY:** Your output MUST be only the script text itself. Do not include any titles, labels like "Script:", or other formatting.
-    5.  **LANGUAGE ADHERENCE:** The entire script must be written strictly in {language}. Do not use pinyin or any other form of romanization. Only use English for universally recognized technical terms or proper nouns (e.g., "CPU", "GPU", "SATA").
+    5.  **STRICT LANGUAGE ADHERENCE:** The entire script MUST be written in {language}. For example, if the language is 'Traditional Chinese', you must use Chinese characters (繁體中文). Absolutely NO pinyin or other romanization is allowed. For example, do not write "zhe shi yi ge li zi", write "這是一個例子". The only exception is for universally recognized technical terms (e.g., "CPU", "GPU").
+    6.  **SPOKEN LANGUAGE:** Write in a natural, spoken style. Avoid using lists, bullet points (like * or -), or numbered points (like 1., 2., (一), (二)). The answer should flow as a single, coherent speech.
 
     Question from the teacher:
     {question}
