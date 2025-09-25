@@ -44,6 +44,8 @@ def _query_llama(prompt_text: str) -> str:
         do_sample=True,
         temperature=0.7,
         top_p=0.9,
+        repetition_penalty=1.15, # 加入重複懲罰以減少重複文字
+        return_full_text=False,  # 僅回傳 AI 生成的部分
     )
     # 從 pipeline 的輸出中提取助理的回應
     response = outputs[0]["generated_text"]
@@ -52,12 +54,8 @@ def _query_llama(prompt_text: str) -> str:
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         
-    # 確保回應是列表格式，且最後一條訊息來自 assistant，避免返回使用者提示
-    if isinstance(response, list) and response and response[-1].get("role") == "assistant":
-        return response[-1].get("content", "").strip()
-    
-    print(f"警告：無法從 LLM 輸出中解析助理回應。原始輸出: {response}")
-    return ""
+    # 因為 return_full_text=False，回應直接就是我們需要的內容
+    return response.strip()
 
 
 def generate_script(question: str, language: str = "English") -> str:
