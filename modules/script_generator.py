@@ -52,8 +52,11 @@ def _query_llama(prompt_text: str) -> str:
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         
-    if isinstance(response, list):
-        return response[-1].get('content', '')
+    # 確保回應是列表格式，且最後一條訊息來自 assistant，避免返回使用者提示
+    if isinstance(response, list) and response and response[-1].get("role") == "assistant":
+        return response[-1].get("content", "").strip()
+    
+    print(f"警告：無法從 LLM 輸出中解析助理回應。原始輸出: {response}")
     return ""
 
 
@@ -78,6 +81,7 @@ def generate_script(question: str, language: str = "English") -> str:
     2.  **CONCISE AND FOCUSED:** Stick to the core of the answer. Avoid unnecessary details or tangents.
     3.  **NO CLOSING REMARKS:** End the script when the answer is complete. Do NOT add summaries, concluding phrases like "And that's how it works," or ask questions like "Does that make sense?".
     4.  **PLAIN TEXT ONLY:** Your output MUST be only the script text itself. Do not include any titles, labels like "Script:", or other formatting.
+    5.  **LANGUAGE ADHERENCE:** The entire script must be written strictly in {language}. Do not use pinyin or any other form of romanization. Only use English for universally recognized technical terms or proper nouns (e.g., "CPU", "GPU", "SATA").
 
     Question from the teacher:
     {question}
